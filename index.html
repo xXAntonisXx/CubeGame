@@ -112,7 +112,6 @@
             selectedCell = null;
             highlightMesh = null;
 
-            // Защита от стартовых совпадений
             ['top', 'front', 'right'].forEach(face => {
                 boardData[face] = [];
                 for (let i = 0; i < GRID_SIZE; i++) {
@@ -252,7 +251,6 @@
             fruitMeshes[key] = mesh;
         }
 
-        // --- ИСПРАВЛЕННОЕ ВЫДЕЛЕНИЕ (Идеальный квадрат) ---
         function showHighlight(cellData) {
             if (highlightMesh) {
                 cube.remove(highlightMesh);
@@ -260,31 +258,25 @@
                 highlightMesh.material.dispose();
             }
 
-            // Используем PlaneGeometry и делаем её прозрачной в центре через текстуру или EdgeGeometry
-            // Самый простой способ сделать рамку - создать плоский квадрат и добавить в него 4 линии
             const group = new THREE.Group();
             const size = CELL_SIZE * 0.9;
             const thickness = 0.05;
             const mat = new THREE.MeshBasicMaterial({ color: 0x4a86ff, depthTest: false });
             
-            // Верхняя линия
             const topGeo = new THREE.PlaneGeometry(size, thickness);
             const topMesh = new THREE.Mesh(topGeo, mat);
             topMesh.position.y = size / 2;
             group.add(topMesh);
             
-            // Нижняя линия
             const botMesh = new THREE.Mesh(topGeo, mat);
             botMesh.position.y = -size / 2;
             group.add(botMesh);
             
-            // Левая линия
             const sideGeo = new THREE.PlaneGeometry(thickness, size);
             const leftMesh = new THREE.Mesh(sideGeo, mat);
             leftMesh.position.x = -size / 2;
             group.add(leftMesh);
             
-            // Правая линия
             const rightMesh = new THREE.Mesh(sideGeo, mat);
             rightMesh.position.x = size / 2;
             group.add(rightMesh);
@@ -375,57 +367,69 @@
             setTimeout(checkMatches, 300);
         }
 
+        // --- НОВАЯ ЛОГИКА ПРОВЕРКИ СОВПАДЕНИЙ (С ПЕРЕХОДАМИ) ---
+        
+        // Функция для получения значения клетки (с учетом перехода на другую грань)
+        function getFruitAt(face, i, j) {
+            // Если вышли за пределы - переходим на соседнюю грань
+            if (face === 'front') {
+                if (j < 0) return getFruitAt('top', i, GRID_SIZE - 1); // Вышли вверх
+                if (j >= GRID_SIZE) return getFruitAt('top', i, 0); // Вышли вниз (если нужно)
+                if (i < 0) return null; // Влево не переходим (там нет грани)
+                if (i >= GRID_SIZE) return getFruitAt('right', 0, j); // Вышли вправо
+            }
+            if (face === 'top') {
+                // Логика переходов с верхней грани
+                if (j < 0) return null;
+                if (j >= GRID_SIZE) return getFruitAt('front', i, 0); // Спускаемся на переднюю
+                if (i < 0) return null;
+                if (i >= GRID_SIZE) return getFruitAt('right', j, 0); // Переход на правую (упрощенно)
+            }
+            if (face === 'right') {
+                if (j < 0) return getFruitAt('top', 0, i); 
+                if (j >= GRID_SIZE) return null;
+                if (i < 0) return getFruitAt('front', GRID_SIZE - 1, j); // Переход на переднюю
+                if (i >= GRID_SIZE) return null;
+            }
+
+            // Если в пределах грани
+            if (i >= 0 && i < GRID_SIZE && j >= 0 && j < GRID_SIZE) {
+                return { face, i, j, fruit: boardData[face][i][j] };
+            }
+            return null;
+        }
+
         function checkMatches() {
             let matchedCells = new Set();
 
-            // 1. Внутри граней
             ['top', 'front', 'right'].forEach(face => {
-                const data = boardData[face];
                 for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE - 2; j++) {
-                        if (data[i][j] && data[i][j] === data[i][j+1] && data[i][j] === data[i][j+2]) {
-                            matchedCells.add(`${face}-${i}-${j}`); matchedCells.add(`${face}-${i}-${j+1}`); matchedCells.add(`${face}-${i}-${j+2}`);
-                        }
-                    }
-                }
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    for (let i = 0; i < GRID_SIZE - 2; i++) {
-                        if (data[i][j] && data[i][j] === data[i+1][j] && data[i][j] === data[i+2][j]) {
-                            matchedCells.add(`${face}-${i}-${j}`); matchedCells.add(`${face}-${i+1}-${j}`); matchedCells.add(`${face}-${i+2}-${j}`);
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        const current = boardData[face][i][j];
+                        if (!current) continue;
+
+                        // Проверяем 4 направления: Вверх, Вниз, Влево, Вправо
+                        const dirs = [
+                            { di: 0, dj: -1 }, // Вверх
+                            { di: 0, dj: 1 },  // Вниз
+                            { di: -1, dj: 0 }, // Влево
+                            { di: 1, dj: 0 }   // Вправо
+                        ];
+
+                        for (let d of dirs) {
+                            // Берем 2 соседние клетки в этом направлении
+                            const n1 = getFruitAt(face, i + d.di, j + d.dj);
+                            const n2 = getFruitAt(face, i + d.di * 2, j + d.dj * 2);
+
+                            if (n1 && n2 && n1.fruit === current && n2.fruit === current) {
+                                matchedCells.add(`${face}-${i}-${j}`);
+                                matchedCells.add(`${n1.face}-${n1.i}-${n1.j}`);
+                                matchedCells.add(`${n2.face}-${n2.i}-${n2.j}`);
+                            }
                         }
                     }
                 }
             });
-
-            // 2. Переходы Верх -> Перед (вертикальные линии через ребро)
-            for (let i = 0; i < GRID_SIZE; i++) {
-                const f1 = boardData['top'][i][GRID_SIZE-1];
-                const f2 = boardData['front'][i][0];
-                const f3 = boardData['front'][i][1];
-                const f4 = boardData['top'][i][GRID_SIZE-2];
-
-                if (f1 && f1 === f2 && f1 === f3) {
-                    matchedCells.add(`top-${i}-${GRID_SIZE-1}`); matchedCells.add(`front-${i}-0`); matchedCells.add(`front-${i}-1`);
-                }
-                if (f1 && f1 === f2 && f1 === f4) {
-                    matchedCells.add(`top-${i}-${GRID_SIZE-2}`); matchedCells.add(`top-${i}-${GRID_SIZE-1}`); matchedCells.add(`front-${i}-0`);
-                }
-            }
-
-            // 3. Переходы Перед -> Право (горизонтальные линии через ребро)
-            for (let j = 0; j < GRID_SIZE; j++) {
-                const f1 = boardData['front'][GRID_SIZE-1][j];
-                const f2 = boardData['right'][0][j];
-                const f3 = boardData['right'][1][j];
-                const f4 = boardData['front'][GRID_SIZE-2][j];
-
-                if (f1 && f1 === f2 && f1 === f3) {
-                    matchedCells.add(`front-${GRID_SIZE-1}-${j}`); matchedCells.add(`right-0-${j}`); matchedCells.add(`right-1-${j}`);
-                }
-                if (f1 && f1 === f2 && f1 === f4) {
-                    matchedCells.add(`front-${GRID_SIZE-2}-${j}`); matchedCells.add(`front-${GRID_SIZE-1}-${j}`); matchedCells.add(`right-0-${j}`);
-                }
-            }
 
             if (matchedCells.size > 0) {
                 matchedCells.forEach(key => {
