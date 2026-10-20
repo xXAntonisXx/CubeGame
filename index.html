@@ -8,93 +8,44 @@
     <style>
         /* --- ОБЩИЕ СТИЛИ --- */
         body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
+            margin: 0; padding: 0; overflow: hidden;
             background-color: #1a1a2e;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: white;
-            touch-action: none;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; color: white; touch-action: none;
         }
-
         #game-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            width: 100%; height: 100%; position: relative;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-
-        /* Верхняя панель (Баланс) */
         .top-bar {
-            position: absolute;
-            top: 20px;
-            width: 90%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0,0,0,0.5);
-            padding: 10px 20px;
-            border-radius: 12px;
-            border: 1px solid #ffd700;
-            z-index: 100;
-            box-sizing: border-box;
+            position: absolute; top: 20px; width: 90%;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 12px;
+            border: 1px solid #ffd700; z-index: 100; box-sizing: border-box;
         }
-
         .balance { font-size: 20px; font-weight: bold; color: #ffd700; }
         .back-btn {
             background: #333; color: white; border: 1px solid #ffd700;
             padding: 5px 15px; border-radius: 8px; cursor: pointer; display: none;
         }
-
-        /* Экраны */
         .screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 1;
-            pointer-events: auto;
-            transition: opacity 0.2s;
-            z-index: 10;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 1; pointer-events: auto; transition: opacity 0.2s; z-index: 10;
         }
-
-        .screen.hidden { 
-            opacity: 0; 
-            pointer-events: none; 
-            z-index: 0;
-        }
-
+        .screen.hidden { opacity: 0; pointer-events: none; z-index: 0; }
+        
         /* --- ЛОББИ --- */
-        .menu-btns {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            z-index: 20;
-        }
+        .menu-btns { display: flex; flex-direction: column; gap: 20px; z-index: 20; }
         .menu-btn {
-            background: linear-gradient(145deg, #2a2a40, #161626);
-            color: #ffd700;
-            border: 3px solid #ffd700;
-            padding: 20px 40px;
-            border-radius: 15px;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            transition: 0.2s;
+            background: linear-gradient(145deg, #2a2a40, #161626); color: #ffd700;
+            border: 3px solid #ffd700; padding: 20px 40px; border-radius: 15px;
+            font-size: 24px; font-weight: bold; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s;
         }
         .menu-btn:active { transform: scale(0.95); }
-
+        
         /* --- СЛОТЫ --- */
         .machine { background: linear-gradient(145deg, #2a2a40, #161626); padding: 20px; border-radius: 20px; border: 4px solid #ffd700; display: flex; gap: 20px; align-items: center; }
         .reel-window { width: 70px; height: 90px; background: #fff; border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 5px 10px rgba(0,0,0,0.2); }
@@ -107,53 +58,17 @@
         .lever-knob { width: 35px; height: 35px; background: radial-gradient(circle, #ff4d4d, #b30000); border-radius: 50%; position: absolute; top: -20px; left: -12px; }
 
         /* --- БЛЭКДЖЕК --- */
-        .bj-table {
-            background: #0b6623;
-            width: 90%; max-width: 400px;
-            height: 450px;
-            border-radius: 20px;
-            border: 10px solid #3e2723;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            position: relative;
-        }
+        .bj-table { background: #0b6623; width: 90%; max-width: 400px; height: 450px; border-radius: 20px; border: 10px solid #3e2723; box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box; position: relative; }
         .bj-hand { display: flex; gap: 10px; min-height: 100px; }
-        .card {
-            width: 60px; height: 90px;
-            background: white;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            position: relative;
-        }
+        .card { width: 60px; height: 90px; background: white; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; }
         .card.red { color: #d32f2f; }
         .card.black { color: #000; }
         .card.hidden { background: repeating-linear-gradient(45deg, #2a2a40, #2a2a40 10px, #161626 10px, #161626 20px); color: transparent; }
-        
         .bj-score { font-size: 20px; font-weight: bold; margin: 10px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .bj-controls { display: flex; gap: 15px; margin-top: 20px; z-index: 20; }
-        .bj-btn {
-            background: #ffd700; color: #000; border: none;
-            padding: 12px 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;
-        }
+        .bj-btn { background: #ffd700; color: #000; border: none; padding: 12px 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .bj-btn:disabled { background: #666; color: #aaa; }
-        
-        /* Уведомления */
-        .toast {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9); border: 2px solid #ffd700; padding: 20px 40px;
-            border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center;
-            z-index: 1000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-        }
+        .toast { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #ffd700; padding: 20px 40px; border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center; z-index: 1000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -165,17 +80,14 @@
     </div>
 
     <div id="game-container">
-        <!-- ЛОББИ -->
         <div class="screen" id="lobby">
             <h1 style="color: #ffd700; font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 40px;">Казино</h1>
             <div class="menu-btns">
                 <button class="menu-btn" onclick="showGame('slots')">🎰 Слоты</button>
                 <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек (21)</button>
-                <button class="menu-btn" style="opacity: 0.5;">🎲 Покер (Скоро)</button>
             </div>
         </div>
 
-        <!-- СЛОТЫ -->
         <div class="screen hidden" id="slots">
             <div class="machine">
                 <div class="reel-window"><div class="reel-strip" id="strip1"></div></div>
@@ -193,14 +105,12 @@
             </div>
         </div>
 
-        <!-- БЛЭКДЖЕК -->
         <div class="screen hidden" id="blackjack">
             <div class="bj-table">
                 <div style="text-align: center;">
                     <div class="bj-score">Дилер: <span id="dealer-score">?</span></div>
                     <div class="bj-hand" id="dealer-hand"></div>
                 </div>
-                
                 <div style="text-align: center;">
                     <div class="bj-score">Вы: <span id="player-score">0</span></div>
                     <div class="bj-hand" id="player-hand"></div>
@@ -212,7 +122,7 @@
                 <button class="bj-btn" id="btn-stand" onclick="bjStand()">Хватит</button>
             </div>
             <div class="bj-controls" id="bj-restart">
-                <button class="bj-btn" onclick="startBlackjack()">Раздать (Ставка 100)</button>
+                <button class="bj-btn" id="btn-deal" onclick="startBlackjack()">Раздать (Ставка 100)</button>
             </div>
         </div>
     </div>
@@ -228,17 +138,16 @@
         let balance = 1000;
         const balanceEl = document.getElementById('global-balance');
         const backBtn = document.getElementById('back-btn');
-        
-        function updateBalanceUI() {
-            balanceEl.innerText = balance;
-        }
+        let dealerInterval = null; // Для очистки таймера дилера
+
+        function updateBalanceUI() { balanceEl.innerText = balance; }
 
         function showToast(text, color = "#ffd700") {
             const toast = document.getElementById('toast');
             toast.innerText = text;
             toast.style.color = color;
             toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 2500);
+            setTimeout(() => toast.style.display = 'none', 2000);
         }
 
         // --- ЗВУКИ ---
@@ -251,10 +160,8 @@
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + dur);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
         const sClick = () => playSound(600, 'square', 0.05);
         const sCard = () => playSound(300, 'triangle', 0.1);
@@ -264,22 +171,19 @@
         // --- НАВИГАЦИЯ ---
         function showGame(screenId) {
             sClick();
-            // Скрываем все экраны
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            // Показываем нужный
             document.getElementById(screenId).classList.remove('hidden');
             backBtn.style.display = 'block';
 
-            // Инициализация конкретной игры
-            if (screenId === 'blackjack') {
-                resetBlackjackUI();
-            } else if (screenId === 'slots') {
-                initSlotStrips();
-            }
+            if (screenId === 'blackjack') resetBlackjackUI();
+            else if (screenId === 'slots') initSlotStrips();
         }
 
         function showLobby() {
             sClick();
+            // Очищаем таймер дилера, если он был запущен, чтобы игра не зависла
+            if (dealerInterval) clearInterval(dealerInterval);
+            
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('lobby').classList.remove('hidden');
             backBtn.style.display = 'none';
@@ -292,11 +196,7 @@
         const STRIP_LENGTH = 30;
         let slotBet = 100;
         let isSpinning = false;
-        let strips = [
-            document.getElementById('strip1'),
-            document.getElementById('strip2'),
-            document.getElementById('strip3')
-        ];
+        let strips = [document.getElementById('strip1'), document.getElementById('strip2'), document.getElementById('strip3')];
 
         function initSlotStrips() {
             strips.forEach(strip => {
@@ -324,28 +224,16 @@
         function animateSlotReel(strip, targetSym, dur, delay, cb) {
             const symH = 90;
             const targetIdx = Math.floor(Math.random() * (STRIP_LENGTH - 10)) + 5;
-            
-            for(let i=0; i<STRIP_LENGTH; i++) {
-                if(i === targetIdx) strip.children[i].innerText = targetSym;
-            }
-
+            for(let i=0; i<STRIP_LENGTH; i++) { if(i === targetIdx) strip.children[i].innerText = targetSym; }
             const finalY = -(targetIdx * symH);
             const startTime = performance.now();
 
             function update(time) {
-                const elapsed = time - startTime;
-                const progress = Math.min(elapsed / dur, 1);
+                const progress = Math.min((time - startTime) / dur, 1);
                 const easeOut = 1 - Math.pow(1 - progress, 3);
-                const currentY = finalY * easeOut;
-                
-                strip.style.transform = `translateY(${currentY}px)`;
-
-                if (progress < 1) {
-                    requestAnimationFrame(update);
-                } else {
-                    playSound(400, 'triangle', 0.1);
-                    if(cb) cb();
-                }
+                strip.style.transform = `translateY(${finalY * easeOut}px)`;
+                if (progress < 1) requestAnimationFrame(update);
+                else { playSound(400, 'triangle', 0.1); if(cb) cb(); }
             }
             setTimeout(() => requestAnimationFrame(update), delay);
         }
@@ -379,13 +267,7 @@
                 } else if (res[0] === res[1] || res[1] === res[2] || res[0] === res[2]) {
                     win = slotBet * 2;
                 }
-
-                if (win > 0) {
-                    balance += win;
-                    updateBalanceUI();
-                    showToast(`ВЫИГРЫШ: +${win} 💰`, "#4ade80");
-                    sWin();
-                }
+                if (win > 0) { balance += win; updateBalanceUI(); showToast(`ВЫИГРЫШ: +${win} 💰`, "#4ade80"); sWin(); }
             });
         }
 
@@ -403,11 +285,7 @@
 
         function createDeck() {
             let d = [];
-            for (let s of SUITS) {
-                for (let v of VALUES) {
-                    d.push({ suit: s, value: v });
-                }
-            }
+            for (let s of SUITS) { for (let v of VALUES) { d.push({ suit: s, value: v }); } }
             for (let i = d.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [d[i], d[j]] = [d[j], d[i]];
@@ -421,6 +299,7 @@
             return parseInt(card.value);
         }
 
+        // ТОЧНЫЙ ПОДСЧЕТ ОЧКОВ (Исправленный)
         function calculateScore(hand) {
             let score = 0;
             let aces = 0;
@@ -435,12 +314,20 @@
             return score;
         }
 
+        function isSoftHand(hand) {
+            let score = 0;
+            let aces = 0;
+            for (let card of hand) {
+                score += getCardValue(card);
+                if (card.value === 'A') aces++;
+            }
+            return aces > 0 && score <= 21;
+        }
+
         function createCardElement(card, hidden = false) {
             const div = document.createElement('div');
             div.className = `card ${hidden ? 'hidden' : (['♥', '♦'].includes(card.suit) ? 'red' : 'black')}`;
-            if (!hidden) {
-                div.innerHTML = `<div style="text-align:center;">${card.value}<br>${card.suit}</div>`;
-            }
+            if (!hidden) div.innerHTML = `<div style="text-align:center;">${card.value}<br>${card.suit}</div>`;
             return div;
         }
 
@@ -451,37 +338,53 @@
             dHandEl.innerHTML = '';
 
             playerHand.forEach(c => pHandEl.appendChild(createCardElement(c)));
-            
             dealerHand.forEach((c, index) => {
                 const isHidden = bjGameActive && index === 1;
                 dHandEl.appendChild(createCardElement(c, isHidden));
             });
 
-            document.getElementById('player-score').innerText = calculateScore(playerHand);
+            let pScore = calculateScore(playerHand);
+            let pText = pScore + (isSoftHand(playerHand) && pScore !== 21 ? " (мягкие)" : "");
+            if (pScore > 21) pText = pScore + " (перебор)";
+            document.getElementById('player-score').innerText = pText;
             
             if (bjGameActive) {
                 document.getElementById('dealer-score').innerText = calculateScore([dealerHand[0]]);
             } else {
-                document.getElementById('dealer-score').innerText = dealerHand.length ? calculateScore(dealerHand) : '?';
+                let dScore = calculateScore(dealerHand);
+                let dText = dScore + (isSoftHand(dealerHand) && dScore !== 21 ? " (мягкие)" : "");
+                if (dScore > 21) dText = dScore + " (перебор)";
+                document.getElementById('dealer-score').innerText = dealerHand.length ? dText : '?';
             }
         }
 
         function resetBlackjackUI() {
+            if (dealerInterval) clearInterval(dealerInterval); // Очистка таймера
+            
             bjGameActive = false;
             playerHand = [];
             dealerHand = [];
             renderBlackjackTable();
             document.getElementById('bj-controls').style.display = 'none';
             document.getElementById('bj-restart').style.display = 'flex';
+            
+            const btnDeal = document.getElementById('btn-deal');
+            btnDeal.disabled = false; 
+            
             document.getElementById('player-score').innerText = '0';
             document.getElementById('dealer-score').innerText = '?';
         }
 
         function startBlackjack() {
+            // Двойная защита от быстрого клика
+            const btnDeal = document.getElementById('btn-deal');
+            if (bjGameActive || btnDeal.disabled) return; 
+            
             if (balance < BJ_BET) { showToast("Мало денег!", "#ff4444"); return; }
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             sClick();
+            btnDeal.disabled = true; // Мгновенная блокировка
             balance -= BJ_BET;
             updateBalanceUI();
 
@@ -496,7 +399,8 @@
             document.getElementById('bj-restart').style.display = 'none';
 
             if (calculateScore(playerHand) === 21) {
-                bjStand();
+                showToast("Блэкджек!", "#4ade80");
+                setTimeout(bjStand, 1000); 
             }
         }
 
@@ -513,22 +417,25 @@
 
         function bjStand() {
             if (!bjGameActive) return;
-            bjGameActive = false;
+            bjGameActive = false; 
             sCard();
+            renderBlackjackTable(); 
             
             let dealerScore = calculateScore(dealerHand);
             
-            const interval = setInterval(() => {
+            if (dealerInterval) clearInterval(dealerInterval);
+            
+            dealerInterval = setInterval(() => {
+                dealerScore = calculateScore(dealerHand);
                 if (dealerScore < 17) {
                     dealerHand.push(deck.pop());
                     renderBlackjackTable();
-                    dealerScore = calculateScore(dealerHand);
                     sCard();
                 } else {
-                    clearInterval(interval);
+                    clearInterval(dealerInterval);
                     determineBjWinner();
                 }
-            }, 500);
+            }, 600);
         }
 
         function determineBjWinner() {
@@ -552,6 +459,7 @@
             
             document.getElementById('bj-controls').style.display = 'none';
             document.getElementById('bj-restart').style.display = 'flex';
+            document.getElementById('btn-deal').disabled = false; 
 
             if (result === true) {
                 balance += BJ_BET * 2;
