@@ -29,7 +29,7 @@ function createGridTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#2a4b8d'; // Сделал фон куба темнее, чтобы белые стрелки выделялись
+    ctx.fillStyle = '#2a4b8d'; 
     ctx.fillRect(0, 0, size, size);
     ctx.strokeStyle = '#4a86ff'; 
     ctx.lineWidth = 6;
@@ -43,115 +43,98 @@ function createGridTexture() {
     return new THREE.CanvasTexture(canvas);
 }
 
-const CUBE_SIZE = 3; // Размер куба
+const CUBE_SIZE = 3; 
 const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
 const material = new THREE.MeshStandardMaterial({ map: createGridTexture() });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
 // --- СОЗДАНИЕ СТРЕЛОК ---
-const arrows = []; // Массив для хранения всех стрелок
+const arrows = []; 
 
-// Функция создания одной стрелки
 function createArrow(pos, rotation) {
-    // Создаем группу (чтобы можно было масштабировать и вращать вместе)
     const arrowGroup = new THREE.Group();
 
-    // Тело стрелки (цилиндр)
     const bodyGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.2; // Сдвигаем вверх
+    body.position.y = 0.2; 
     arrowGroup.add(body);
 
-    // Наконечник стрелки (конус)
     const headGeo = new THREE.ConeGeometry(0.2, 0.3, 8);
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xff4444 }); // Красный наконечник
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xff4444 }); 
     const head = new THREE.Mesh(headGeo, headMat);
     head.position.y = 0.55; 
     arrowGroup.add(head);
 
-    // Позиционируем и поворачиваем стрелку
     arrowGroup.position.copy(pos);
     arrowGroup.rotation.copy(rotation);
 
-    // Сохраняем данные о стрелке (для будущей логики)
     arrowGroup.userData = {
         isAnimating: false,
-        direction: new THREE.Vector3(0, 1, 0).applyEuler(rotation) // Куда смотрит стрелка
+        direction: new THREE.Vector3(0, 1, 0).applyEuler(rotation) 
     };
 
-    cube.add(arrowGroup); // Добавляем стрелку внутрь куба (чтобы она двигалась вместе с ним)
+    cube.add(arrowGroup); 
     arrows.push(arrowGroup);
 }
 
-// --- РАССТАНОВКА СТРЕЛОК НА ГРАНЯХ ---
-const gridSize = CUBE_SIZE / 3; // Размер одной клетки (1)
-const offset = CUBE_SIZE / 2 + 0.01; // Выносим стрелку чуть-чуть над гранью
+const offset = CUBE_SIZE / 2 + 0.01; 
 
-// Массив возможных позиций на 3 гранях (верхняя, передняя, правая)
-// Чтобы не рисовать на задних гранях, которые не видны
-const positions = [];
-
-// Верхняя грань (Y = +offset)
-positions.push({ pos: new THREE.Vector3(0, offset, 0), rot: new THREE.Euler(0, 0, 0) }); // Смотрит вверх
-// Передняя грань (Z = +offset)
-positions.push({ pos: new THREE.Vector3(0, 0, offset), rot: new THREE.Euler(Math.PI/2, 0, 0) }); // Смотрит вперед
-// Правая грань (X = +offset)
-positions.push({ pos: new THREE.Vector3(offset, 0, 0), rot: new THREE.Euler(0, 0, -Math.PI/2) }); // Смотрит вправо
-
-// Пока поставим по одной стрелке в центр каждой из трех видимых граней
-createArrow(positions[0].pos, positions[0].rot);
-createArrow(positions[1].pos, positions[1].rot);
-createArrow(positions[2].pos, positions[2].rot);
+// Ставим стрелки чуть в стороне от центра, чтобы было видно, что клик работает точечно
+createArrow(new THREE.Vector3(0.8, offset, 0), new THREE.Euler(0, 0, 0)); 
+createArrow(new THREE.Vector3(-0.8, 0, offset), new THREE.Euler(Math.PI/2, 0, 0)); 
+createArrow(new THREE.Vector3(offset, 0, 0.8), new THREE.Euler(0, 0, -Math.PI/2)); 
 
 // --- ЛОГИКА КЛИКА (RAYCASTER) ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-function onPointerClick(event) {
-    // Если мы только что таскали куб, клик не засчитываем
-    if (isDragging) return; 
-
-    // Получаем координаты клика
+function handleTap(clientX, clientY) {
+    // Переводим координаты экрана в координаты Three.js (-1 до 1)
     const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
 
     // Проверяем пересечение луча со стрелками
-    const intersects = raycaster.intersectObjects(arrows, true); // true = проверять вложенные объекты
+    const intersects = raycaster.intersectObjects(arrows, true); 
 
     if (intersects.length > 0) {
-        // Находим саму группу стрелки (родителя)
         let clickedObject = intersects[0].object;
+        
+        // Ищем корневую группу стрелки
         while (clickedObject.parent !== cube && clickedObject.parent !== null) {
             clickedObject = clickedObject.parent;
         }
 
         if (clickedObject.userData && !clickedObject.userData.isAnimating) {
-            // Запускаем анимацию полета
             clickedObject.userData.isAnimating = true;
             
-            // Простой эффект: стрелка улетает в направлении своего взгляда и исчезает
             const direction = clickedObject.userData.direction.clone();
             const startPos = clickedObject.position.clone();
             const startTime = Date.now();
 
+            // Делаем стрелку полупрозрачной, чтобы показать, что она "активирована"
+            clickedObject.traverse((child) => {
+                if (child.isMesh) child.material.transparent = true;
+            });
+
             function animateArrow() {
                 const timePassed = (Date.now() - startTime) / 1000;
                 
-                // Двигаем стрелку
                 clickedObject.position.copy(startPos).add(direction.clone().multiplyScalar(timePassed * 5));
-                
-                // Уменьшаем её (эффект исчезновения)
                 clickedObject.scale.setScalar(Math.max(0, 1 - timePassed));
+                
+                // Плавно делаем прозрачной
+                clickedObject.traverse((child) => {
+                    if (child.isMesh) child.material.opacity = Math.max(0, 1 - timePassed);
+                });
 
                 if (timePassed < 1) {
                     requestAnimationFrame(animateArrow);
                 } else {
-                    // Удаляем после полета
                     cube.remove(clickedObject);
                     const index = arrows.indexOf(clickedObject);
                     if (index > -1) arrows.splice(index, 1);
@@ -162,23 +145,28 @@ function onPointerClick(event) {
     }
 }
 
-// --- УПРАВЛЕНИЕ ВРАЩЕНИЕМ ---
+// --- УПРАВЛЕНИЕ ---
 let isDragging = false;
+let startX = 0, startY = 0;
 let previousMousePosition = { x: 0, y: 0 };
-let dragDistance = 0; // Чтобы отличать клик от свайпа
+let dragDistance = 0; 
 
 function onPointerDown(e) {
     isDragging = true;
     dragDistance = 0;
+    
+    // Берем координаты из тача или мыши
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    startX = clientX;
+    startY = clientY;
     previousMousePosition = { x: clientX, y: clientY };
 }
 
 function onPointerMove(e) {
     if (!isDragging) return;
-    if(e.cancelable) e.preventDefault(); 
-
+    
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -187,7 +175,6 @@ function onPointerMove(e) {
         y: clientY - previousMousePosition.y
     };
 
-    // Считаем общее расстояние, на которое сдвинули палец
     dragDistance += Math.abs(deltaMove.x) + Math.abs(deltaMove.y);
 
     cube.rotation.y += deltaMove.x * 0.01;
@@ -197,23 +184,28 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
-    // Если сдвинули мало — считаем это кликом
-    if (isDragging && dragDistance < 10) {
-        // Для тач-событий передаем измененные координаты
-        const clickEvent = e.changedTouches ? e.changedTouches[0] : e;
-        onPointerClick(clickEvent);
-    }
+    if (!isDragging) return;
     isDragging = false;
+
+    // Если сдвинули меньше 15 пикселей — это тап, а не свайп
+    if (dragDistance < 15) {
+        const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        handleTap(clientX, clientY);
+    }
 }
 
+// Привязываем события к самому холсту (canvas), а не к window
 renderer.domElement.addEventListener('mousedown', onPointerDown);
 renderer.domElement.addEventListener('mousemove', onPointerMove);
-window.addEventListener('mouseup', onPointerUp);
+window.addEventListener('mouseup', onPointerUp); // mouseup на window, чтобы работало, если увести мышь
 
-renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: false });
-renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: false });
+// Для тач-экранов используем passive: false, чтобы работал preventDefault, если понадобится
+renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
+renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: true });
 window.addEventListener('touchend', onPointerUp);
 
+// --- РЕСАЙЗ И АНИМАЦИЯ ---
 function onWindowResize() {
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
@@ -224,7 +216,6 @@ function onWindowResize() {
 
 window.addEventListener('resize', onWindowResize);
 window.addEventListener('orientationchange', onWindowResize);
-
 onWindowResize(); 
 
 function animate() {
