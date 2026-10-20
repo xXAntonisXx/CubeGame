@@ -12,13 +12,54 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #1a1a2e;
+            background-color: #f4f1ea; /* Светлый фон как в оригинале */
             font-family: sans-serif;
+            user-select: none;
         }
         #game-container {
             width: 100vw;
             height: 100vh;
             display: block;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        #restart-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            color: #333;
+            border: 2px solid #ccc;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #win-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 40px;
+            border-radius: 16px;
+            color: #4ade80;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -26,6 +67,10 @@
 </head>
 <body>
     <div id="game-container"></div>
+    
+    <div id="score">Очки: 0</div>
+    <button id="restart-btn">Заново</button>
+    <div id="win-screen">Уровень пройден!</div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -33,116 +78,179 @@
         tg.expand();
 
         const container = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const winScreen = document.getElementById('win-screen');
+        const restartBtn = document.getElementById('restart-btn');
 
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a2e);
+        let scene, camera, renderer, cube;
+        let arrows = [];
+        let score = 0;
+        
+        // Настройки сетки
+        const GRID_SIZE = 4; // Сетка 4x4
+        const CUBE_SIZE = 3;
+        const CELL_SIZE = CUBE_SIZE / GRID_SIZE; 
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(6, 6, 6); 
-        camera.lookAt(0, 0, 0);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 10, 7);
-        scene.add(directionalLight);
-
-        function createGridTexture() {
-            const size = 512;
+        // Загрузка текстуры стрелки (генерируем программно)
+        function createArrowTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = size; canvas.height = size;
+            canvas.width = 128;
+            canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#2a4b8d'; 
-            ctx.fillRect(0, 0, size, size);
-            ctx.strokeStyle = '#4a86ff'; 
-            ctx.lineWidth = 6;
-            const step = size / 3;
-            for (let i = 1; i < 3; i++) {
-                ctx.beginPath(); ctx.moveTo(i * step, 0); ctx.lineTo(i * step, size); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, i * step); ctx.lineTo(size, i * step); ctx.stroke();
-            }
+            
+            ctx.clearRect(0, 0, 128, 128);
+            ctx.strokeStyle = '#333'; // Темно-серый цвет
             ctx.lineWidth = 12;
-            ctx.strokeRect(0, 0, size, size);
-            return new THREE.CanvasTexture(canvas);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Рисуем стрелку (основание)
+            ctx.beginPath();
+            ctx.moveTo(64, 100); // Низ
+            ctx.lineTo(64, 30);  // Верх
+            ctx.stroke();
+
+            // Рисуем наконечник
+            ctx.beginPath();
+            ctx.moveTo(64, 15);
+            ctx.lineTo(35, 50);
+            ctx.moveTo(64, 15);
+            ctx.lineTo(93, 50);
+            ctx.stroke();
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
         }
 
-        const CUBE_SIZE = 3; 
-        const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-        const material = new THREE.MeshStandardMaterial({ map: createGridTexture() });
-        const cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
+        let arrowTexture;
 
-        // --- ИГРОВАЯ ЛОГИКА ---
-        const CELL_SIZE = CUBE_SIZE / 3; 
-        const offset = CUBE_SIZE / 2 + 0.01; 
-        const arrows = []; 
+        function init() {
+            container.innerHTML = '';
+            score = 0;
+            scoreElement.innerText = `Очки: ${score}`;
+            winScreen.style.display = 'none';
+            arrows = [];
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf4f1ea);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(6, 6, 6); 
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            arrowTexture = createArrowTexture();
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(5, 10, 7);
+            scene.add(directionalLight);
+
+            // Куб (Белый)
+            const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+            const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            cube = new THREE.Mesh(geometry, material);
+            
+            // Добавляем линии сетки на куб
+            const edges = new THREE.EdgesGeometry(geometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xdddddd }));
+            cube.add(line);
+
+            scene.add(cube);
+
+            // Генерация стрелок
+            const offset = CUBE_SIZE / 2 + 0.01; 
+            const halfGrid = (GRID_SIZE - 1) / 2;
+
+            for(let i = 0; i < GRID_SIZE; i++) {
+                for(let j = 0; j < GRID_SIZE; j++) {
+                    const posX = (i - halfGrid) * CELL_SIZE;
+                    const posY = (j - halfGrid) * CELL_SIZE;
+                    
+                    // Верхняя грань
+                    if (Math.random() > 0.3) createArrow(posX, offset, posY, 'top', Math.floor(Math.random() * 4));
+                    // Передняя грань
+                    if (Math.random() > 0.3) createArrow(posX, posY, offset, 'front', Math.floor(Math.random() * 4));
+                    // Правая грань
+                    if (Math.random() > 0.3) createArrow(offset, posY, posX, 'right', Math.floor(Math.random() * 4));
+                }
+            }
+
+            bindEvents();
+            onWindowResize(); 
+            animate();
+        }
 
         function createArrow(x, y, z, face, dirIndex) {
-            const arrowGroup = new THREE.Group();
+            // Используем PlaneGeometry для плоской стрелки
+            const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.8, CELL_SIZE * 0.8);
+            const mat = new THREE.MeshBasicMaterial({ 
+                map: arrowTexture, 
+                transparent: true,
+                depthTest: false // Чтобы стрелка всегда была поверх куба
+            });
+            const mesh = new THREE.Mesh(geo, mat);
 
-            const bodyGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.4, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 0.2; 
-            arrowGroup.add(body);
-
-            const headGeo = new THREE.ConeGeometry(0.2, 0.3, 8);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xff4444 }); 
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 0.5; 
-            arrowGroup.add(head);
-
-            arrowGroup.position.set(x, y, z);
+            mesh.position.set(x, y, z);
             
             let dir = new THREE.Vector3();
             let rotZ = 0;
+            let baseRotX = 0;
+            let baseRotY = 0;
 
+            // Направление и поворот для плоскости
             if (face === 'top') {
-                arrowGroup.rotation.x = 0;
-                if (dirIndex === 0) { dir.set(0, 0, -1); rotZ = 0; }
-                if (dirIndex === 1) { dir.set(1, 0, 0); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { dir.set(0, 0, 1); rotZ = Math.PI; }
-                if (dirIndex === 3) { dir.set(-1, 0, 0); rotZ = Math.PI/2; }
+                baseRotX = -Math.PI / 2;
+                if (dirIndex === 0) { dir.set(0, 0, -1); rotZ = 0; }          // Вверх
+                if (dirIndex === 1) { dir.set(1, 0, 0); rotZ = -Math.PI/2; }   // Вправо
+                if (dirIndex === 2) { dir.set(0, 0, 1); rotZ = Math.PI; }      // Вниз
+                if (dirIndex === 3) { dir.set(-1, 0, 0); rotZ = Math.PI/2; }   // Влево
             } else if (face === 'front') {
-                arrowGroup.rotation.x = Math.PI / 2;
-                if (dirIndex === 0) { dir.set(0, 1, 0); rotZ = 0; }
-                if (dirIndex === 1) { dir.set(1, 0, 0); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { dir.set(0, -1, 0); rotZ = Math.PI; }
-                if (dirIndex === 3) { dir.set(-1, 0, 0); rotZ = Math.PI/2; }
+                baseRotX = 0;
+                if (dirIndex === 0) { dir.set(0, 1, 0); rotZ = 0; }            // Вверх
+                if (dirIndex === 1) { dir.set(1, 0, 0); rotZ = -Math.PI/2; }   // Вправо
+                if (dirIndex === 2) { dir.set(0, -1, 0); rotZ = Math.PI; }     // Вниз
+                if (dirIndex === 3) { dir.set(-1, 0, 0); rotZ = Math.PI/2; }   // Влево
             } else if (face === 'right') {
-                arrowGroup.rotation.z = -Math.PI / 2;
-                if (dirIndex === 0) { dir.set(0, 1, 0); rotZ = 0; }
-                if (dirIndex === 1) { dir.set(0, 0, 1); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { dir.set(0, -1, 0); rotZ = Math.PI; }
-                if (dirIndex === 3) { dir.set(0, 0, -1); rotZ = Math.PI/2; }
+                baseRotY = Math.PI / 2;
+                if (dirIndex === 0) { dir.set(0, 1, 0); rotZ = 0; }            // Вверх
+                if (dirIndex === 1) { dir.set(0, 0, 1); rotZ = -Math.PI/2; }   // Вперед
+                if (dirIndex === 2) { dir.set(0, -1, 0); rotZ = Math.PI; }     // Вниз
+                if (dirIndex === 3) { dir.set(0, 0, -1); rotZ = Math.PI/2; }   // Назад
             }
 
-            arrowGroup.rotation.z = rotZ;
-            arrowGroup.userData = { isAnimating: false, dir: dir, face: face };
+            mesh.rotation.set(baseRotX, baseRotY, rotZ);
+            
+            // Сохраняем изначальную позицию для отскока
+            mesh.userData = { 
+                isAnimating: false, 
+                dir: dir, 
+                face: face,
+                startPos: new THREE.Vector3(x, y, z)
+            };
 
-            cube.add(arrowGroup); 
-            arrows.push(arrowGroup);
+            cube.add(mesh); 
+            arrows.push(mesh);
         }
 
-        // Генерация уровня
-        for(let i = -1; i <= 1; i++) {
-            for(let j = -1; j <= 1; j++) {
-                if (Math.random() > 0.2) createArrow(i * CELL_SIZE, offset, j * CELL_SIZE, 'top', Math.floor(Math.random() * 4));
-                if (Math.random() > 0.2) createArrow(i * CELL_SIZE, j * CELL_SIZE, offset, 'front', Math.floor(Math.random() * 4));
-                if (Math.random() > 0.2) createArrow(offset, j * CELL_SIZE, i * CELL_SIZE, 'right', Math.floor(Math.random() * 4));
+        function checkWin() {
+            if (arrows.length === 0) {
+                winScreen.style.display = 'block';
             }
         }
 
-        // --- КЛИКИ И ВЫСТРЕЛЫ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         function handleTap(clientX, clientY) {
+            if (arrows.length === 0) return;
+
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -152,10 +260,6 @@
 
             if (intersects.length > 0) {
                 let clickedArrow = intersects[0].object;
-                while (clickedArrow.parent !== cube && clickedArrow.parent !== null) {
-                    clickedArrow = clickedArrow.parent;
-                }
-
                 if (clickedArrow.userData && !clickedArrow.userData.isAnimating) {
                     launchArrow(clickedArrow);
                 }
@@ -168,42 +272,65 @@
             const startPos = arrow.position.clone();
             const dir = arrow.userData.dir.clone(); 
             
+            // Проверяем, есть ли препятствие на пути
+            // (Для простоты считаем, что если стрелка летит и встречает другую - летим обратно)
             function animateArrow() {
                 const timePassed = (Date.now() - startTime) / 1000;
+                // Двигаем стрелку
+                arrow.position.copy(startPos).add(dir.clone().multiplyScalar(timePassed * 5));
                 
-                arrow.position.copy(startPos).add(dir.clone().multiplyScalar(timePassed * 6));
-                
+                // Проверка столкновения с другими стрелками
                 let hit = false;
-                for (let i = arrows.length - 1; i >= 0; i--) {
+                for (let i = 0; i < arrows.length; i++) {
                     const other = arrows[i];
                     if (other === arrow || other.userData.isAnimating) continue;
-                    if (other.userData.face !== arrow.userData.face) continue; 
-
-                    if (arrow.position.distanceTo(other.position) < 0.6) {
-                        cube.remove(other);
-                        arrows.splice(i, 1);
-                        hit = true;
+                    
+                    // Если стрелка пролетает рядом с другой на этой же грани
+                    if (other.userData.face === arrow.userData.face) {
+                        if (arrow.position.distanceTo(other.position) < CELL_SIZE * 0.6) {
+                            hit = true;
+                            break;
+                        }
                     }
                 }
 
                 if (hit) {
-                    arrow.scale.setScalar(Math.max(0, 1 - timePassed * 2));
-                } else {
-                    arrow.scale.setScalar(Math.max(0, 1 - timePassed));
+                    // ЕСЛИ ВСТРЕТИЛИ ПРЕПЯТСТВИЕ - ВОЗВРАЩАЕМСЯ НАЗАД
+                    const returnTime = Date.now() - startTime;
+                    const backPos = startPos.clone().add(dir.clone().multiplyScalar((returnTime / 1000) * 5));
+                    
+                    arrow.position.copy(backPos);
+                    
+                    // Плавно возвращаем
+                    const distToStart = arrow.position.distanceTo(startPos);
+                    arrow.position.lerp(startPos, 0.1);
+                    
+                    if (distToStart < 0.05) {
+                        arrow.position.copy(startPos);
+                        arrow.userData.isAnimating = false; // Разрешаем снова кликать
+                    } else {
+                        requestAnimationFrame(animateArrow);
+                    }
+                    return;
                 }
 
-                if (timePassed < 1.5) {
-                    requestAnimationFrame(animateArrow);
-                } else {
+                // Если долетели до края куба (вылетели) - исчезаем
+                if (arrow.position.length() > CUBE_SIZE * 0.8) {
                     cube.remove(arrow);
                     const index = arrows.indexOf(arrow);
                     if (index > -1) arrows.splice(index, 1);
+                    score += 10;
+                    scoreElement.innerText = `Очки: ${score}`;
+                    checkWin();
+                    return;
                 }
+
+                requestAnimationFrame(animateArrow);
             }
             animateArrow();
         }
 
-        // --- УПРАВЛЕНИЕ ---
+        // --- Управление ---
         let isDragging = false;
         let startX = 0, startY = 0;
         let previousMousePosition = { x: 0, y: 0 };
@@ -243,15 +370,18 @@
             }
         }
 
-        renderer.domElement.addEventListener('mousedown', onPointerDown);
-        renderer.domElement.addEventListener('mousemove', onPointerMove);
-        window.addEventListener('mouseup', onPointerUp);
+        function bindEvents() {
+            renderer.domElement.addEventListener('mousedown', onPointerDown);
+            renderer.domElement.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
 
-        renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
-        renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: true });
-        window.addEventListener('touchend', onPointerUp);
+            renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
+            renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: true });
+            window.addEventListener('touchend', onPointerUp);
+        }
 
         function onWindowResize() {
+            if(!container || !camera || !renderer) return;
             const width = container.clientWidth || window.innerWidth;
             const height = container.clientHeight || window.innerHeight;
             camera.aspect = width / height;
@@ -261,13 +391,19 @@
 
         window.addEventListener('resize', onWindowResize);
         window.addEventListener('orientationchange', onWindowResize);
-        onWindowResize(); 
 
         function animate() {
             requestAnimationFrame(animate);
-            renderer.render(scene, camera);
+            if(renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
         }
-        animate();
+
+        restartBtn.addEventListener('click', () => {
+            init();
+        });
+
+        init();
     </script>
 </body>
 </html>
