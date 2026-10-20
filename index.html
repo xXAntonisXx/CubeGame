@@ -44,6 +44,7 @@
             border-radius: 12px;
             border: 1px solid #ffd700;
             z-index: 100;
+            box-sizing: border-box;
         }
 
         .balance { font-size: 20px; font-weight: bold; color: #ffd700; }
@@ -60,16 +61,24 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.3s;
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.2s;
+            z-index: 10;
         }
 
-        .hidden { opacity: 0; pointer-events: none; }
+        .screen.hidden { 
+            opacity: 0; 
+            pointer-events: none; 
+            z-index: 0;
+        }
 
         /* --- ЛОББИ --- */
         .menu-btns {
             display: flex;
             flex-direction: column;
             gap: 20px;
+            z-index: 20;
         }
         .menu-btn {
             background: linear-gradient(145deg, #2a2a40, #161626);
@@ -86,11 +95,11 @@
         }
         .menu-btn:active { transform: scale(0.95); }
 
-        /* --- СЛОТЫ (Упрощенные для интеграции) --- */
+        /* --- СЛОТЫ --- */
         .machine { background: linear-gradient(145deg, #2a2a40, #161626); padding: 20px; border-radius: 20px; border: 4px solid #ffd700; display: flex; gap: 20px; align-items: center; }
         .reel-window { width: 70px; height: 90px; background: #fff; border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 5px 10px rgba(0,0,0,0.2); }
-        .reel-strip { position: absolute; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; }
-        .symbol { width: 100%; height: 90px; display: flex; justify-content: center; align-items: center; font-size: 45px; }
+        .reel-strip { position: absolute; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; will-change: transform; }
+        .symbol { width: 100%; height: 90px; display: flex; justify-content: center; align-items: center; font-size: 45px; line-height: 1; }
         .lever-container { width: 40px; height: 150px; cursor: pointer; position: relative; }
         .lever-base { width: 15px; height: 100px; background: #555; position: absolute; bottom: 0; left: 12px; border-radius: 10px; }
         .lever-arm { width: 10px; height: 70px; background: #999; position: absolute; bottom: 40px; left: 15px; border-radius: 5px; transform-origin: bottom; transition: 0.2s; }
@@ -99,9 +108,9 @@
 
         /* --- БЛЭКДЖЕК --- */
         .bj-table {
-            background: #0b6623; /* Зеленое сукно */
+            background: #0b6623;
             width: 90%; max-width: 400px;
-            height: 500px;
+            height: 450px;
             border-radius: 20px;
             border: 10px solid #3e2723;
             box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
@@ -131,7 +140,7 @@
         .card.hidden { background: repeating-linear-gradient(45deg, #2a2a40, #2a2a40 10px, #161626 10px, #161626 20px); color: transparent; }
         
         .bj-score { font-size: 20px; font-weight: bold; margin: 10px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .bj-controls { display: flex; gap: 15px; margin-top: 20px; }
+        .bj-controls { display: flex; gap: 15px; margin-top: 20px; z-index: 20; }
         .bj-btn {
             background: #ffd700; color: #000; border: none;
             padding: 12px 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;
@@ -146,6 +155,7 @@
             z-index: 1000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
     </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
@@ -157,7 +167,7 @@
     <div id="game-container">
         <!-- ЛОББИ -->
         <div class="screen" id="lobby">
-            <h1 style="color: #ffd700; font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.5);">Добро пожаловать!</h1>
+            <h1 style="color: #ffd700; font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 40px;">Казино</h1>
             <div class="menu-btns">
                 <button class="menu-btn" onclick="showGame('slots')">🎰 Слоты</button>
                 <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек (21)</button>
@@ -197,12 +207,12 @@
                 </div>
             </div>
             
-            <div class="bj-controls" id="bj-controls">
+            <div class="bj-controls" id="bj-controls" style="display: none;">
                 <button class="bj-btn" id="btn-hit" onclick="bjHit()">Взять</button>
                 <button class="bj-btn" id="btn-stand" onclick="bjStand()">Хватит</button>
             </div>
-            <div class="bj-controls" id="bj-restart" style="display: none;">
-                <button class="bj-btn" onclick="startBlackjack()">Новая раздача (Ставка 100)</button>
+            <div class="bj-controls" id="bj-restart">
+                <button class="bj-btn" onclick="startBlackjack()">Раздать (Ставка 100)</button>
             </div>
         </div>
     </div>
@@ -252,15 +262,15 @@
         const sLose = () => { playSound(200, 'sawtooth', 0.4); };
 
         // --- НАВИГАЦИЯ ---
-        let currentScreen = 'lobby';
-
         function showGame(screenId) {
             sClick();
+            // Скрываем все экраны
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            // Показываем нужный
             document.getElementById(screenId).classList.remove('hidden');
             backBtn.style.display = 'block';
-            currentScreen = screenId;
 
+            // Инициализация конкретной игры
             if (screenId === 'blackjack') {
                 resetBlackjackUI();
             } else if (screenId === 'slots') {
@@ -273,7 +283,6 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('lobby').classList.remove('hidden');
             backBtn.style.display = 'none';
-            currentScreen = 'lobby';
         }
 
         // ==========================================
@@ -385,7 +394,7 @@
         // ==========================================
         const SUITS = ['♠', '♥', '♦', '♣'];
         const VALUES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-        const BJ_BET = 100; // Фиксированная ставка для простоты
+        const BJ_BET = 100;
 
         let deck = [];
         let playerHand = [];
@@ -399,7 +408,6 @@
                     d.push({ suit: s, value: v });
                 }
             }
-            // Перемешиваем (Fisher-Yates)
             for (let i = d.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [d[i], d[j]] = [d[j], d[i]];
@@ -420,7 +428,6 @@
                 score += getCardValue(card);
                 if (card.value === 'A') aces++;
             }
-            // Если перебор, меняем тузы с 11 на 1
             while (score > 21 && aces > 0) {
                 score -= 10;
                 aces--;
@@ -446,7 +453,6 @@
             playerHand.forEach(c => pHandEl.appendChild(createCardElement(c)));
             
             dealerHand.forEach((c, index) => {
-                // Скрываем вторую карту дилера, пока игра активна
                 const isHidden = bjGameActive && index === 1;
                 dHandEl.appendChild(createCardElement(c, isHidden));
             });
@@ -456,7 +462,7 @@
             if (bjGameActive) {
                 document.getElementById('dealer-score').innerText = calculateScore([dealerHand[0]]);
             } else {
-                document.getElementById('dealer-score').innerText = calculateScore(dealerHand);
+                document.getElementById('dealer-score').innerText = dealerHand.length ? calculateScore(dealerHand) : '?';
             }
         }
 
@@ -489,9 +495,8 @@
             document.getElementById('bj-controls').style.display = 'flex';
             document.getElementById('bj-restart').style.display = 'none';
 
-            // Проверка на мгновенный Блэкджек у игрока
             if (calculateScore(playerHand) === 21) {
-                bjStand(); // Автоматически завершаем игру
+                bjStand();
             }
         }
 
@@ -508,12 +513,11 @@
 
         function bjStand() {
             if (!bjGameActive) return;
-            bjGameActive = false; // Открываем карты дилера
+            bjGameActive = false;
             sCard();
             
             let dealerScore = calculateScore(dealerHand);
             
-            // Дилер берет карты, пока не наберет 17 и больше
             const interval = setInterval(() => {
                 if (dealerScore < 17) {
                     dealerHand.push(deck.pop());
@@ -564,7 +568,7 @@
             }
         }
 
-        // Инициализация
+        // Инициализация при загрузке
         updateBalanceUI();
         initSlotStrips();
     </script>
