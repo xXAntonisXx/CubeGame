@@ -170,100 +170,82 @@
             const offset = CUBE_SIZE / 2 + 0.01; 
             const halfGrid = (GRID_SIZE - 1) / 2;
 
+            // Временная сетка для проверки свободных путей (true = занято)
+            let occupied = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
+
             for(let i = 0; i < GRID_SIZE; i++) {
                 for(let j = 0; j < GRID_SIZE; j++) {
                     const posX = (i - halfGrid) * CELL_SIZE;
                     const posY = (j - halfGrid) * CELL_SIZE;
-                    
+
+                    // Генерируем стрелки с вероятностью 70% (если клетка свободна)
                     if (Math.random() > 0.3) {
                         let dirs = [];
-                        if (i > 0) dirs.push(3); 
-                        if (i < GRID_SIZE - 1) dirs.push(1); 
-                        if (j > 0) dirs.push(2); 
-                        if (j < GRID_SIZE - 1) dirs.push(0); 
-                        if (dirs.length > 0) createArrow(posX, offset, posY, 'top', dirs[Math.floor(Math.random() * dirs.length)], i, j);
-                    }
-                    
-                    if (Math.random() > 0.3) {
-                        let dirs = [];
-                        if (i > 0) dirs.push(3); 
-                        if (i < GRID_SIZE - 1) dirs.push(1); 
-                        if (j > 0) dirs.push(2); 
-                        if (j < GRID_SIZE - 1) dirs.push(0); 
-                        if (dirs.length > 0) createArrow(posX, posY, offset, 'front', dirs[Math.floor(Math.random() * dirs.length)], i, j);
-                    }
-                    
-                    if (Math.random() > 0.3) {
-                        let dirs = [];
-                        if (j > 0) dirs.push(2); 
-                        if (j < GRID_SIZE - 1) dirs.push(0); 
-                        if (i > 0) dirs.push(1); 
-                        if (i < GRID_SIZE - 1) dirs.push(3); 
-                        if (dirs.length > 0) createArrow(offset, posY, posX, 'right', dirs[Math.floor(Math.random() * dirs.length)], i, j);
+
+                        // Проверяем свободен ли путь до края куба
+                        // Вверх (0)
+                        let clearUp = true;
+                        for(let k = j+1; k < GRID_SIZE; k++) if (occupied[i][k]) clearUp = false;
+                        if (clearUp && j < GRID_SIZE - 1) dirs.push(0);
+
+                        // Вправо (1)
+                        let clearRight = true;
+                        for(let k = i+1; k < GRID_SIZE; k++) if (occupied[k][j]) clearRight = false;
+                        if (clearRight && i < GRID_SIZE - 1) dirs.push(1);
+
+                        // Вниз (2)
+                        let clearDown = true;
+                        for(let k = j-1; k >= 0; k--) if (occupied[i][k]) clearDown = false;
+                        if (clearDown && j > 0) dirs.push(2);
+
+                        // Влево (3)
+                        let clearLeft = true;
+                        for(let k = i-1; k >= 0; k--) if (occupied[k][j]) clearLeft = false;
+                        if (clearLeft && i > 0) dirs.push(3);
+
+                        if (dirs.length > 0) {
+                            const dir = dirs[Math.floor(Math.random() * dirs.length)];
+                            createArrow(posX, offset, posY, 'top', dir, i, j);
+                            occupied[i][j] = true; // Заняли клетку
+                        }
                     }
                 }
             }
         }
 
-        // Теперь передаем индексы сетки i, j
         function createArrow(x, y, z, face, dirIndex, gridI, gridJ) {
+            const containerGroup = new THREE.Group();
+            containerGroup.position.set(x, y, z);
+            
+            if (face === 'top') containerGroup.rotation.x = -Math.PI / 2;
+            if (face === 'front') containerGroup.rotation.x = 0;
+            if (face === 'right') containerGroup.rotation.y = Math.PI / 2;
+
             const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.8, CELL_SIZE * 0.8);
-            const mat = new THREE.MeshBasicMaterial({ 
-                map: arrowTexture, 
-                transparent: true,
-                depthTest: false 
-            });
-            const mesh = new THREE.Mesh(geo, mat);
+            const mat = new THREE.MeshBasicMaterial({ map: arrowTexture, transparent: true, depthTest: false });
+            const arrowMesh = new THREE.Mesh(geo, mat);
 
-            mesh.position.set(x, y, z);
-            
-            let globalDir = new THREE.Vector3();
             let rotZ = 0;
-            let baseRotX = 0;
-            let baseRotY = 0;
-
-            // Для стрелок направления трактуем так:
-            // 0 - Вверх (по сетке), 1 - Вправо, 2 - Вниз, 3 - Влево
-            if (face === 'top') {
-                baseRotX = -Math.PI / 2;
-                if (dirIndex === 0) { globalDir.set(0, 0, -1); rotZ = 0; }
-                if (dirIndex === 1) { globalDir.set(1, 0, 0); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { globalDir.set(0, 0, 1); rotZ = Math.PI; }
-                if (dirIndex === 3) { globalDir.set(-1, 0, 0); rotZ = Math.PI/2; }
-            } else if (face === 'front') {
-                baseRotX = 0;
-                if (dirIndex === 0) { globalDir.set(0, 1, 0); rotZ = 0; }
-                if (dirIndex === 1) { globalDir.set(1, 0, 0); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { globalDir.set(0, -1, 0); rotZ = Math.PI; }
-                if (dirIndex === 3) { globalDir.set(-1, 0, 0); rotZ = Math.PI/2; }
-            } else if (face === 'right') {
-                baseRotY = Math.PI / 2;
-                if (dirIndex === 0) { globalDir.set(0, 1, 0); rotZ = 0; }
-                if (dirIndex === 1) { globalDir.set(0, 0, 1); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { globalDir.set(0, -1, 0); rotZ = Math.PI; }
-                if (dirIndex === 3) { globalDir.set(0, 0, -1); rotZ = Math.PI/2; }
-            }
-
-            mesh.rotation.set(baseRotX, baseRotY, rotZ);
+            if (dirIndex === 0) rotZ = 0;
+            if (dirIndex === 1) rotZ = -Math.PI / 2;
+            if (dirIndex === 2) rotZ = Math.PI;
+            if (dirIndex === 3) rotZ = Math.PI / 2;
             
-            mesh.userData = { 
-                isAnimating: false, 
-                globalDir: globalDir, 
-                dirIndex: dirIndex,
-                face: face,
-                startPos: new THREE.Vector3(x, y, z),
-                gridI: gridI, // Сетка X (столбец)
-                gridJ: gridJ  // Сетка Y (строка)
+            arrowMesh.rotation.z = rotZ;
+
+            containerGroup.add(arrowMesh);
+            cube.add(containerGroup);
+
+            arrowMesh.userData = { 
+                isAnimating: false, face: face, containerGroup: containerGroup,
+                startPos: new THREE.Vector3(x, y, z), gridI: gridI, gridJ: gridJ, dirIndex: dirIndex 
             };
 
-            cube.add(mesh); 
-            arrows.push(mesh);
+            arrows.push(arrowMesh);
         }
 
         function checkWin() {
-            if (arrows.length === 0) {
-                winScreen.style.display = 'block';
-            }
+            if (arrows.length === 0) winScreen.style.display = 'block';
         }
 
         const raycaster = new THREE.Raycaster();
@@ -290,16 +272,12 @@
         function launchArrow(arrow) {
             arrow.userData.isAnimating = true;
             const startPos = arrow.userData.startPos.clone();
-            const dir = arrow.userData.globalDir.clone();
             const face = arrow.userData.face;
             const myI = arrow.userData.gridI;
             const myJ = arrow.userData.gridJ;
-            const myDirIndex = arrow.userData.dirIndex;
+            const myDir = arrow.userData.dirIndex;
 
-            let closestObstacleDist = Infinity;
-            let obstacleArrow = null;
-
-            // 1. Ищем ближайшее препятствие, используя ТОЧНЫЕ координаты сетки
+            let hitObstacle = false;
             for (let k = 0; k < arrows.length; k++) {
                 const other = arrows[k];
                 if (other === arrow || other.userData.face !== face) continue;
@@ -307,86 +285,49 @@
                 const otherI = other.userData.gridI;
                 const otherJ = other.userData.gridJ;
 
-                let onSameLine = false;
-                let distInGrid = 0;
-
-                // Проверяем, смотрим ли мы в сторону другой стрелки и лежит ли она на одной линии
-                if (myDirIndex === 0) { // Вверх
-                    onSameLine = (myI === otherI && otherJ > myJ);
-                    distInGrid = otherJ - myJ;
-                } else if (myDirIndex === 1) { // Вправо
-                    onSameLine = (myJ === otherJ && otherI > myI);
-                    distInGrid = otherI - myI;
-                } else if (myDirIndex === 2) { // Вниз
-                    onSameLine = (myI === otherI && otherJ < myJ);
-                    distInGrid = myJ - otherJ;
-                } else if (myDirIndex === 3) { // Влево
-                    onSameLine = (myJ === otherJ && otherI < myI);
-                    distInGrid = myI - otherI;
-                }
-
-                if (onSameLine) {
-                    const actualDist = distInGrid * CELL_SIZE;
-                    if (actualDist < closestObstacleDist) {
-                        closestObstacleDist = actualDist;
-                        obstacleArrow = other;
-                    }
-                }
+                if (myDir === 0 && myI === otherI && otherJ > myJ) hitObstacle = true;
+                if (myDir === 1 && myJ === otherJ && otherI > myI) hitObstacle = true;
+                if (myDir === 2 && myI === otherI && otherJ < myJ) hitObstacle = true;
+                if (myDir === 3 && myJ === otherJ && otherI < myI) hitObstacle = true;
+                if (hitObstacle) break;
             }
 
-            // 2. Вычисляем дистанцию до края куба
-            const limit = CUBE_SIZE / 2;
-            let distToEdge = Infinity;
-            const epsilon = 0.001;
-
-            if (dir.x > epsilon) distToEdge = Math.min(distToEdge, (limit - startPos.x) / dir.x);
-            else if (dir.x < -epsilon) distToEdge = Math.min(distToEdge, (-limit - startPos.x) / dir.x);
-            
-            if (dir.y > epsilon) distToEdge = Math.min(distToEdge, (limit - startPos.y) / dir.y);
-            else if (dir.y < -epsilon) distToEdge = Math.min(distToEdge, (-limit - startPos.y) / dir.y);
-            
-            if (dir.z > epsilon) distToEdge = Math.min(distToEdge, (limit - startPos.z) / dir.z);
-            else if (dir.z < -epsilon) distToEdge = Math.min(distToEdge, (-limit - startPos.z) / dir.z);
-
-            // 3. Проверяем столкновение
-            const hitObstacle = obstacleArrow !== null && closestObstacleDist < distToEdge;
+            const parentGroup = arrow.userData.containerGroup;
+            const localForward = new THREE.Vector3(0, 1, 0); 
 
             if (hitObstacle) {
-                // Отскок
                 const animStart = performance.now();
-                const bounceDist = Math.min(CELL_SIZE * 0.4, closestObstacleDist * 0.8);
+                const bounceDist = CELL_SIZE * 0.3;
 
                 function animateReturn() {
                     const t = (performance.now() - animStart) / 150; 
                     if (t < 1) {
-                        arrow.position.copy(startPos).add(dir.clone().multiplyScalar(bounceDist * t));
+                        parentGroup.position.copy(startPos).add(localForward.clone().applyEuler(parentGroup.rotation).multiplyScalar(bounceDist * t));
                         requestAnimationFrame(animateReturn);
                     } else {
                         const tBack = (performance.now() - animStart - 150) / 150; 
                         if (tBack < 1) {
-                            arrow.position.copy(startPos).add(dir.clone().multiplyScalar(bounceDist * (1 - tBack)));
+                            parentGroup.position.copy(startPos).add(localForward.clone().applyEuler(parentGroup.rotation).multiplyScalar(bounceDist * (1 - tBack)));
                             requestAnimationFrame(animateReturn);
                         } else {
-                            arrow.position.copy(startPos);
+                            parentGroup.position.copy(startPos);
                             arrow.userData.isAnimating = false; 
                         }
                     }
                 }
                 animateReturn();
             } else {
-                // Успешный вылет
                 const animStart = performance.now();
                 function animateFly() {
                     const t = (performance.now() - animStart) / 200; 
                     if (t < 1) {
-                        const flyDist = Math.min(distToEdge, CUBE_SIZE * 1.5);
-                        arrow.position.copy(startPos).add(dir.clone().multiplyScalar(t * flyDist));
+                        parentGroup.position.copy(startPos).add(localForward.clone().applyEuler(parentGroup.rotation).multiplyScalar(t * (CUBE_SIZE * 1.5)));
                         arrow.material.opacity = 1 - t;
                         requestAnimationFrame(animateFly);
                     } else {
                         const index = arrows.indexOf(arrow);
                         if (index > -1) {
-                            cube.remove(arrow);
+                            cube.remove(parentGroup);
                             arrows.splice(index, 1);
                             score += 10;
                             scoreElement.innerText = `Очки: ${score}`;
@@ -462,15 +403,10 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            if(renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
+            if(renderer && scene && camera) renderer.render(scene, camera);
         }
 
-        restartBtn.addEventListener('click', () => {
-            init();
-        });
-
+        restartBtn.addEventListener('click', () => init());
         init();
     </script>
 </body>
