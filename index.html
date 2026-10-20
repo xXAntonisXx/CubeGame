@@ -4,15 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>Cube Topia Clone</title>
+    <title>3D Крестики-Нолики</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #f4f1ea; 
+            background-color: #1a1a2e; 
             font-family: sans-serif;
             user-select: none;
             touch-action: none;
@@ -22,45 +20,36 @@
             height: 100vh;
             display: block;
         }
-        #score {
+        #ui-layer {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #333;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        #status {
+            color: white;
             font-size: 24px;
             font-weight: bold;
-            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
         }
         #restart-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #fff;
-            color: #333;
-            border: 2px solid #ccc;
-            padding: 10px 15px;
+            background: #4a86ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        #win-screen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px 40px;
-            border-radius: 16px;
-            color: #4ade80;
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
-            display: none;
-            pointer-events: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        #restart-btn:active {
+            background: #2a4b8d;
         }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -69,9 +58,10 @@
 <body>
     <div id="game-container"></div>
     
-    <div id="score">Очки: 0</div>
-    <button id="restart-btn">Заново</button>
-    <div id="win-screen">Уровень пройден!</div>
+    <div id="ui-layer">
+        <div id="status">Ваш ход (Крестики)</div>
+        <button id="restart-btn">Заново</button>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -79,270 +69,239 @@
         tg.expand();
 
         const container = document.getElementById('game-container');
-        const scoreElement = document.getElementById('score');
-        const winScreen = document.getElementById('win-screen');
+        const statusText = document.getElementById('status');
         const restartBtn = document.getElementById('restart-btn');
 
         let scene, camera, renderer, cube;
-        let arrows = [];
-        let score = 0;
-        
-        const GRID_SIZE = 4; 
+        let cells = []; // Массив для хранения мешей клеток
+        let boardState = {}; // Состояние игры
+
+        const GRID_SIZE = 3; // 3x3
         const CUBE_SIZE = 3;
         const CELL_SIZE = CUBE_SIZE / GRID_SIZE; 
 
-        function createArrowTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 128;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.clearRect(0, 0, 128, 128);
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 14;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+        // Состояние для каждой грани (пустая строка)
+        const faces = ['top', 'front', 'right'];
+        faces.forEach(f => boardState[f] = Array(9).fill(null));
 
-            ctx.beginPath();
-            ctx.moveTo(64, 110);
-            ctx.lineTo(64, 40);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(64, 20);
-            ctx.lineTo(30, 55);
-            ctx.moveTo(64, 20);
-            ctx.lineTo(98, 55);
-            ctx.stroke();
-
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.magFilter = THREE.NearestFilter;
-            return tex;
-        }
-
-        let arrowTexture;
+        let isPlayerTurn = true;
 
         function init() {
             container.innerHTML = '';
-            score = 0;
-            scoreElement.innerText = `Очки: ${score}`;
-            winScreen.style.display = 'none';
-            arrows = [];
+            faces.forEach(f => boardState[f] = Array(9).fill(null));
+            cells = [];
+            isPlayerTurn = true;
+            statusText.innerText = "Ваш ход (Крестики)";
+            statusText.style.color = "white";
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf4f1ea);
+            scene.background = new THREE.Color(0x1a1a2e);
 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Фиксированная камера, чтобы видеть 3 грани
             camera.position.set(6, 6, 6); 
             camera.lookAt(0, 0, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             container.appendChild(renderer.domElement);
 
-            arrowTexture = createArrowTexture();
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            // Свет
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(5, 10, 7);
             scene.add(directionalLight);
 
+            // Сам куб (темный фон)
             const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-            const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const material = new THREE.MeshStandardMaterial({ color: 0x2a4b8d });
             cube = new THREE.Mesh(geometry, material);
             
+            // Линии сетки на кубе
             const edges = new THREE.EdgesGeometry(geometry);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xdddddd }));
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x4a86ff }));
             cube.add(line);
 
             scene.add(cube);
 
-            generateLevel();
+            // Создаем невидимые (или полупрозрачные) кликабельные зоны
+            createInteractiveCells();
 
             bindEvents();
             onWindowResize(); 
             animate();
         }
 
-        function generateLevel() {
+        function createInteractiveCells() {
             const offset = CUBE_SIZE / 2 + 0.01; 
             const halfGrid = (GRID_SIZE - 1) / 2;
 
-            // Временная сетка для проверки свободных путей (true = занято)
-            let occupied = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
+            faces.forEach(face => {
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        const posX = (i - halfGrid) * CELL_SIZE;
+                        const posY = (j - halfGrid) * CELL_SIZE;
+                        
+                        // Создаем плоский квадрат для клика
+                        const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.9, CELL_SIZE * 0.9);
+                        const mat = new THREE.MeshBasicMaterial({ 
+                            color: 0xffffff, 
+                            transparent: true, 
+                            opacity: 0.05, // Едва заметный
+                            side: THREE.DoubleSide
+                        });
+                        const mesh = new THREE.Mesh(geo, mat);
 
-            for(let i = 0; i < GRID_SIZE; i++) {
-                for(let j = 0; j < GRID_SIZE; j++) {
-                    const posX = (i - halfGrid) * CELL_SIZE;
-                    const posY = (j - halfGrid) * CELL_SIZE;
-
-                    // Генерируем стрелки с вероятностью 70% (если клетка свободна)
-                    if (Math.random() > 0.3) {
-                        let dirs = [];
-
-                        // Проверяем свободен ли путь до края куба
-                        // Вверх (0)
-                        let clearUp = true;
-                        for(let k = j+1; k < GRID_SIZE; k++) if (occupied[i][k]) clearUp = false;
-                        if (clearUp && j < GRID_SIZE - 1) dirs.push(0);
-
-                        // Вправо (1)
-                        let clearRight = true;
-                        for(let k = i+1; k < GRID_SIZE; k++) if (occupied[k][j]) clearRight = false;
-                        if (clearRight && i < GRID_SIZE - 1) dirs.push(1);
-
-                        // Вниз (2)
-                        let clearDown = true;
-                        for(let k = j-1; k >= 0; k--) if (occupied[i][k]) clearDown = false;
-                        if (clearDown && j > 0) dirs.push(2);
-
-                        // Влево (3)
-                        let clearLeft = true;
-                        for(let k = i-1; k >= 0; k--) if (occupied[k][j]) clearLeft = false;
-                        if (clearLeft && i > 0) dirs.push(3);
-
-                        if (dirs.length > 0) {
-                            const dir = dirs[Math.floor(Math.random() * dirs.length)];
-                            createArrow(posX, offset, posY, 'top', dir, i, j);
-                            occupied[i][j] = true; // Заняли клетку
+                        // Позиционируем и разворачиваем
+                        if (face === 'top') {
+                            mesh.position.set(posX, offset, posY);
+                            mesh.rotation.x = -Math.PI / 2;
+                        } else if (face === 'front') {
+                            mesh.position.set(posX, posY, offset);
+                        } else if (face === 'right') {
+                            mesh.position.set(offset, posY, posX);
+                            mesh.rotation.y = Math.PI / 2;
                         }
+
+                        mesh.userData = {
+                            face: face,
+                            index: i * GRID_SIZE + j,
+                            isOccupied: false,
+                            markMesh: null
+                        };
+
+                        cube.add(mesh);
+                        cells.push(mesh);
                     }
                 }
+            });
+        }
+
+        // Отрисовка Крестика или Нолика
+        function drawMark(cell, isCross) {
+            const markGroup = new THREE.Group();
+            const color = isCross ? 0xff4444 : 0x44ff44; // Красный для X, Зеленый для O
+            const size = CELL_SIZE * 0.6;
+
+            if (isCross) {
+                // Крестик (две линии)
+                const geo1 = new THREE.BoxGeometry(size, 0.05, 0.05);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const line1 = new THREE.Mesh(geo1, mat);
+                line1.rotation.z = Math.PI / 4;
+                
+                const line2 = new THREE.Mesh(geo1, mat);
+                line2.rotation.z = -Math.PI / 4;
+
+                markGroup.add(line1);
+                markGroup.add(line2);
+            } else {
+                // Нолик (кольцо)
+                const geo = new THREE.RingGeometry(size * 0.3, size * 0.5, 16);
+                const mat = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide });
+                const ring = new THREE.Mesh(geo, mat);
+                markGroup.add(ring);
+            }
+
+            // Привязываем маркер к позиции клетки и ее повороту
+            markGroup.position.copy(cell.position);
+            markGroup.rotation.copy(cell.rotation);
+            // Чуть выдвигаем вперед, чтобы не сливалось с кубом
+            markGroup.translateZ(0.01); 
+
+            cube.add(markGroup);
+            cell.userData.markMesh = markGroup;
+        }
+
+        // Проверка победы на одной грани
+        function checkWin(face) {
+            const state = boardState[face];
+            const winLines = [
+                [0,1,2], [3,4,5], [6,7,8], // Горизонтали
+                [0,3,6], [1,4,7], [2,5,8], // Вертикали
+                [0,4,8], [2,4,6]           // Диагонали
+            ];
+
+            for (let line of winLines) {
+                const [a, b, c] = line;
+                if (state[a] && state[a] === state[b] && state[a] === state[c]) {
+                    return state[a]; // 'X' или 'O'
+                }
+            }
+            return null;
+        }
+
+        // Ход бота (простейший ИИ)
+        function botMove() {
+            // Ищем свободные клетки
+            const freeCells = cells.filter(c => !c.userData.isOccupied);
+            if (freeCells.length === 0) return;
+
+            // Для простоты бот ставит в случайную свободную клетку
+            // (В идеале тут можно написать умный ИИ, но для теста сойдет)
+            const randomCell = freeCells[Math.floor(Math.random() * freeCells.length)];
+            
+            randomCell.userData.isOccupied = true;
+            const face = randomCell.userData.face;
+            const idx = randomCell.userData.index;
+            
+            boardState[face][idx] = 'O';
+            drawMark(randomCell, false);
+
+            const winner = checkWin(face);
+            if (winner) {
+                statusText.innerText = "Победил Бот (Нолики)!";
+                statusText.style.color = "#44ff44";
+            } else {
+                isPlayerTurn = true;
+                statusText.innerText = "Ваш ход (Крестики)";
             }
         }
 
-        function createArrow(x, y, z, face, dirIndex, gridI, gridJ) {
-            const containerGroup = new THREE.Group();
-            containerGroup.position.set(x, y, z);
-            
-            if (face === 'top') containerGroup.rotation.x = -Math.PI / 2;
-            if (face === 'front') containerGroup.rotation.x = 0;
-            if (face === 'right') containerGroup.rotation.y = Math.PI / 2;
-
-            const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.8, CELL_SIZE * 0.8);
-            const mat = new THREE.MeshBasicMaterial({ map: arrowTexture, transparent: true, depthTest: false });
-            const arrowMesh = new THREE.Mesh(geo, mat);
-
-            let rotZ = 0;
-            if (dirIndex === 0) rotZ = 0;
-            if (dirIndex === 1) rotZ = -Math.PI / 2;
-            if (dirIndex === 2) rotZ = Math.PI;
-            if (dirIndex === 3) rotZ = Math.PI / 2;
-            
-            arrowMesh.rotation.z = rotZ;
-
-            containerGroup.add(arrowMesh);
-            cube.add(containerGroup);
-
-            arrowMesh.userData = { 
-                isAnimating: false, face: face, containerGroup: containerGroup,
-                startPos: new THREE.Vector3(x, y, z), gridI: gridI, gridJ: gridJ, dirIndex: dirIndex 
-            };
-
-            arrows.push(arrowMesh);
-        }
-
-        function checkWin() {
-            if (arrows.length === 0) winScreen.style.display = 'block';
-        }
-
+        // Обработка клика
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         function handleTap(clientX, clientY) {
-            if (arrows.length === 0) return;
+            if (!isPlayerTurn) return;
 
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(arrows, true); 
+            const intersects = raycaster.intersectObjects(cells); 
 
             if (intersects.length > 0) {
-                let clickedArrow = intersects[0].object;
-                if (clickedArrow.userData && !clickedArrow.userData.isAnimating) {
-                    launchArrow(clickedArrow);
+                const clickedCell = intersects[0].object;
+                
+                if (!clickedCell.userData.isOccupied) {
+                    clickedCell.userData.isOccupied = true;
+                    const face = clickedCell.userData.face;
+                    const idx = clickedCell.userData.index;
+                    
+                    boardState[face][idx] = 'X';
+                    drawMark(clickedCell, true);
+
+                    const winner = checkWin(face);
+                    if (winner) {
+                        statusText.innerText = "Вы победили (Крестики)!";
+                        statusText.style.color = "#ff4444";
+                        isPlayerTurn = false;
+                    } else {
+                        isPlayerTurn = false;
+                        statusText.innerText = "Ход бота...";
+                        setTimeout(botMove, 500); // Задержка для реалистичности
+                    }
                 }
             }
         }
 
-        function launchArrow(arrow) {
-            arrow.userData.isAnimating = true;
-            const startPos = arrow.userData.startPos.clone();
-            const face = arrow.userData.face;
-            const myI = arrow.userData.gridI;
-            const myJ = arrow.userData.gridJ;
-            const myDir = arrow.userData.dirIndex;
-
-            let hitObstacle = false;
-            for (let k = 0; k < arrows.length; k++) {
-                const other = arrows[k];
-                if (other === arrow || other.userData.face !== face) continue;
-
-                const otherI = other.userData.gridI;
-                const otherJ = other.userData.gridJ;
-
-                if (myDir === 0 && myI === otherI && otherJ > myJ) hitObstacle = true;
-                if (myDir === 1 && myJ === otherJ && otherI > myI) hitObstacle = true;
-                if (myDir === 2 && myI === otherI && otherJ < myJ) hitObstacle = true;
-                if (myDir === 3 && myJ === otherJ && otherI < myI) hitObstacle = true;
-                if (hitObstacle) break;
-            }
-
-            const parentGroup = arrow.userData.containerGroup;
-            const localForward = new THREE.Vector3(0, 1, 0); 
-
-            if (hitObstacle) {
-                const animStart = performance.now();
-                const bounceDist = CELL_SIZE * 0.3;
-
-                function animateReturn() {
-                    const t = (performance.now() - animStart) / 150; 
-                    if (t < 1) {
-                        parentGroup.position.copy(startPos).add(localForward.clone().applyEuler(parentGroup.rotation).multiplyScalar(bounceDist * t));
-                        requestAnimationFrame(animateReturn);
-                    } else {
-                        const tBack = (performance.now() - animStart - 150) / 150; 
-                        if (tBack < 1) {
-                            parentGroup.position.copy(startPos).add(localForward.clone().applyEuler(parentGroup.rotation).multiplyScalar(bounceDist * (1 - tBack)));
-                            requestAnimationFrame(animateReturn);
-                        } else {
-                            parentGroup.position.copy(startPos);
-                            arrow.userData.isAnimating = false; 
-                        }
-                    }
-                }
-                animateReturn();
-            } else {
-                const animStart = performance.now();
-                function animateFly() {
-                    const t = (performance.now() - animStart) / 200; 
-                    if (t < 1) {
-                        parentGroup.position.copy(startPos).add(localForward.clone().applyEuler(parentGroup.rotation).multiplyScalar(t * (CUBE_SIZE * 1.5)));
-                        arrow.material.opacity = 1 - t;
-                        requestAnimationFrame(animateFly);
-                    } else {
-                        const index = arrows.indexOf(arrow);
-                        if (index > -1) {
-                            cube.remove(parentGroup);
-                            arrows.splice(index, 1);
-                            score += 10;
-                            scoreElement.innerText = `Очки: ${score}`;
-                            checkWin();
-                        }
-                    }
-                }
-                animateFly();
-            }
-        }
-
-        // --- Управление ---
+        // --- Управление кликами ---
         let isDragging = false;
         let startX = 0, startY = 0;
-        let previousMousePosition = { x: 0, y: 0 };
         let dragDistance = 0; 
 
         function onPointerDown(e) {
@@ -352,26 +311,21 @@
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             startX = clientX;
             startY = clientY;
-            previousMousePosition = { x: clientX, y: clientY };
         }
 
         function onPointerMove(e) {
             if (!isDragging) return;
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const deltaMove = {
-                x: clientX - previousMousePosition.x,
-                y: clientY - previousMousePosition.y
-            };
-            dragDistance += Math.abs(deltaMove.x) + Math.abs(deltaMove.y);
-            cube.rotation.y += deltaMove.x * 0.01;
-            cube.rotation.x += deltaMove.y * 0.01;
-            previousMousePosition = { x: clientX, y: clientY };
+            dragDistance += Math.abs(clientX - startX) + Math.abs(clientY - startY);
+            startX = clientX;
+            startY = clientY;
         }
 
         function onPointerUp(e) {
             if (!isDragging) return;
             isDragging = false;
+            // Если сдвинули мало — это клик
             if (dragDistance < 15) {
                 const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
                 const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
