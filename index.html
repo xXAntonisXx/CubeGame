@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Fruit Cube Match-3</title>
+    <title>3D Fruit Match-3</title>
     <style>
         body {
             margin: 0;
@@ -51,6 +51,14 @@
         #restart-btn:active {
             background: #e86a45;
         }
+        #hint {
+            position: absolute;
+            bottom: 20px;
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            width: 100%;
+        }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -62,6 +70,7 @@
         <div id="score-board">Очки: 0</div>
         <button id="restart-btn">Заново</button>
     </div>
+    <div id="hint">Нажмите на фрукт, затем на соседний (в т.ч. на другой грани), чтобы поменять их местами</div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -79,15 +88,20 @@
         const CUBE_SIZE = 3;
         const CELL_SIZE = CUBE_SIZE / GRID_SIZE; 
 
-        // Фрукты (эмодзи для текстур)
         const FRUITS = ['🍎', '🍊', '🍌', '🍇'];
-        let boardData = {}; // Логическое состояние сетки
-        let cellMeshes = []; // Визуальные меши для кликов
-        let fruitMeshes = {}; // Визуальные меши фруктов (ключ: "face-i-j")
+        
+        // 3D Массив 3x3x3 для логики
+        // boardData[x][y][z]
+        // x (0..2) - слева направо
+        // y (0..2) - снизу вверх
+        // z (0..2) - сзади вперед
+        let boardData = [];
+        
+        let cellMeshes = []; // Невидимые кубы для кликов
+        let fruitMeshes = {}; // Визуальные меши (ключ: "x-y-z")
 
         let selectedCell = null;
 
-        // Создаем текстуру из эмодзи
         function createFruitTexture(emoji) {
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -108,7 +122,7 @@
             container.innerHTML = '';
             score = 0;
             scoreElement.innerText = `Очки: ${score}`;
-            boardData = {};
+            boardData = [];
             cellMeshes = [];
             fruitMeshes = {};
             selectedCell = null;
@@ -133,7 +147,7 @@
 
             // Куб
             const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-            const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const material = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 }); // Полупрозрачный, чтобы видеть внутренности
             cube = new THREE.Mesh(geometry, material);
             
             const edges = new THREE.EdgesGeometry(geometry);
@@ -152,80 +166,75 @@
         }
 
         function initBoardData() {
-            const faces = ['top', 'front', 'right'];
-            faces.forEach(face => {
-                boardData[face] = [];
-                for(let i=0; i<GRID_SIZE; i++) {
-                    boardData[face][i] = [];
-                    for(let j=0; j<GRID_SIZE; j++) {
-                        boardData[face][i][j] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+            for (let x = 0; x < GRID_SIZE; x++) {
+                boardData[x] = [];
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    boardData[x][y] = [];
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        boardData[x][y][z] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
                     }
                 }
-            });
+            }
+        }
+
+        function get3DPos(x, y, z) {
+            const halfGrid = (GRID_SIZE - 1) / 2;
+            return new THREE.Vector3(
+                (x - halfGrid) * CELL_SIZE,
+                (y - halfGrid) * CELL_SIZE,
+                (z - halfGrid) * CELL_SIZE
+            );
         }
 
         function createInteractiveCells() {
-            const offset = CUBE_SIZE / 2 + 0.01; 
-            const halfGrid = (GRID_SIZE - 1) / 2;
-
-            ['top', 'front', 'right'].forEach(face => {
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        const posX = (i - halfGrid) * CELL_SIZE;
-                        const posY = (j - halfGrid) * CELL_SIZE;
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        // Проверяем, находится ли клетка на поверхности куба (видна ли она)
+                        const isSurface = (x === 0 || x === GRID_SIZE - 1 || 
+                                           y === 0 || y === GRID_SIZE - 1 || 
+                                           z === 0 || z === GRID_SIZE - 1);
                         
-                        const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.9, CELL_SIZE * 0.9);
-                        const mat = new THREE.MeshBasicMaterial({ 
-                            color: 0xffffff, 
-                            transparent: true, 
-                            opacity: 0.0, // Полностью прозрачные для кликов
-                            side: THREE.DoubleSide
-                        });
-                        const mesh = new THREE.Mesh(geo, mat);
-
-                        if (face === 'top') {
-                            mesh.position.set(posX, offset, posY);
-                            mesh.rotation.x = -Math.PI / 2;
-                        } else if (face === 'front') {
-                            mesh.position.set(posX, posY, offset);
-                        } else if (face === 'right') {
-                            mesh.position.set(offset, posY, posX);
-                            mesh.rotation.y = Math.PI / 2;
+                        if (isSurface) {
+                            const geo = new THREE.BoxGeometry(CELL_SIZE * 0.95, CELL_SIZE * 0.95, CELL_SIZE * 0.95);
+                            const mat = new THREE.MeshBasicMaterial({ 
+                                color: 0xffffff, 
+                                transparent: true, 
+                                opacity: 0.0, 
+                                depthWrite: false
+                            });
+                            const mesh = new THREE.Mesh(geo, mat);
+                            
+                            mesh.position.copy(get3DPos(x, y, z));
+                            mesh.userData = { x, y, z };
+                            
+                            cube.add(mesh);
+                            cellMeshes.push(mesh);
                         }
-
-                        mesh.userData = { face, i, j };
-                        cube.add(mesh);
-                        cellMeshes.push(mesh);
                     }
                 }
-            });
+            }
         }
 
         function renderAllFruits() {
-            // Удаляем старые фрукты
             Object.values(fruitMeshes).forEach(mesh => cube.remove(mesh));
             fruitMeshes = {};
 
-            ['top', 'front', 'right'].forEach(face => {
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        const fruit = boardData[face][i][j];
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        const fruit = boardData[x][y][z];
                         if (fruit) {
-                            renderSingleFruit(face, i, j, fruit);
+                            renderSingleFruit(x, y, z, fruit);
                         }
                     }
                 }
-            });
+            }
         }
 
-        function renderSingleFruit(face, i, j, fruitEmoji) {
-            const key = `${face}-${i}-${j}`;
+        function renderSingleFruit(x, y, z, fruitEmoji) {
+            const key = `${x}-${y}-${z}`;
             if (fruitMeshes[key]) cube.remove(fruitMeshes[key]);
-
-            const offset = CUBE_SIZE / 2 + 0.02; 
-            const halfGrid = (GRID_SIZE - 1) / 2;
-            const posX = (i - halfGrid) * CELL_SIZE;
-            const posY = (j - halfGrid) * CELL_SIZE;
 
             const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.9, CELL_SIZE * 0.9);
             const mat = new THREE.MeshBasicMaterial({ 
@@ -235,15 +244,25 @@
             });
             const mesh = new THREE.Mesh(geo, mat);
 
-            if (face === 'top') {
-                mesh.position.set(posX, offset, posY);
-                mesh.rotation.x = -Math.PI / 2;
-            } else if (face === 'front') {
-                mesh.position.set(posX, posY, offset);
-            } else if (face === 'right') {
-                mesh.position.set(offset, posY, posX);
-                mesh.rotation.y = Math.PI / 2;
-            }
+            const pos = get3DPos(x, y, z);
+            mesh.position.copy(pos);
+
+            // Разворачиваем фрукт так, чтобы он смотрел наружу от центра куба
+            if (x === GRID_SIZE - 1) mesh.rotation.y = Math.PI / 2; // Правая грань
+            else if (x === 0) mesh.rotation.y = -Math.PI / 2; // Левая грань
+            else if (y === GRID_SIZE - 1) mesh.rotation.x = -Math.PI / 2; // Верхняя грань
+            else if (y === 0) mesh.rotation.x = Math.PI / 2; // Нижняя грань
+            else if (z === GRID_SIZE - 1) mesh.rotation.y = 0; // Передняя грань
+            else if (z === 0) mesh.rotation.y = Math.PI; // Задняя грань
+
+            // Выдвигаем немного наружу, чтобы не сливалось с кубом
+            const offset = CELL_SIZE * 0.01;
+            if (x === GRID_SIZE - 1) mesh.position.x += offset;
+            if (x === 0) mesh.position.x -= offset;
+            if (y === GRID_SIZE - 1) mesh.position.y += offset;
+            if (y === 0) mesh.position.y -= offset;
+            if (z === GRID_SIZE - 1) mesh.position.z += offset;
+            if (z === 0) mesh.position.z -= offset;
 
             cube.add(mesh);
             fruitMeshes[key] = mesh;
@@ -265,22 +284,18 @@
                 const clicked = intersects[0].object.userData;
                 
                 if (!selectedCell) {
-                    // Выбираем первый фрукт
                     selectedCell = clicked;
                     highlightCell(clicked, true);
                 } else {
-                    // Если нажали на тот же - снимаем выделение
-                    if (selectedCell.face === clicked.face && selectedCell.i === clicked.i && selectedCell.j === clicked.j) {
+                    if (selectedCell.x === clicked.x && selectedCell.y === clicked.y && selectedCell.z === clicked.z) {
                         highlightCell(selectedCell, false);
                         selectedCell = null;
                         return;
                     }
 
-                    // Проверяем, соседние ли это клетки
                     if (isAdjacent(selectedCell, clicked)) {
                         swapFruits(selectedCell, clicked);
                     } else {
-                        // Если не соседние, переключаем выбор
                         highlightCell(selectedCell, false);
                         selectedCell = clicked;
                         highlightCell(selectedCell, true);
@@ -290,101 +305,103 @@
         }
 
         function highlightCell(cellData, isActive) {
-            const key = `${cellData.face}-${cellData.i}-${cellData.j}`;
+            const key = `${cellData.x}-${cellData.y}-${cellData.z}`;
             const mesh = fruitMeshes[key];
             if (mesh) {
-                if (isActive) {
-                    mesh.material.color.setHex(0xaaaaaa); // Затемняем выбранный
-                } else {
-                    mesh.material.color.setHex(0xffffff); // Возвращаем цвет
-                }
+                if (isActive) mesh.material.color.setHex(0xffaaaa);
+                else mesh.material.color.setHex(0xffffff);
             }
         }
 
         function isAdjacent(c1, c2) {
-            if (c1.face !== c2.face) return false;
-            const dx = Math.abs(c1.i - c2.i);
-            const dy = Math.abs(c1.j - c2.j);
-            return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+            const dx = Math.abs(c1.x - c2.x);
+            const dy = Math.abs(c1.y - c2.y);
+            const dz = Math.abs(c1.z - c2.z);
+            // Соседние, если отличаются только по одной оси на 1
+            return (dx + dy + dz) === 1;
         }
 
         function swapFruits(c1, c2) {
-            // Меняем в данных
-            const temp = boardData[c1.face][c1.i][c1.j];
-            boardData[c1.face][c1.i][c1.j] = boardData[c2.face][c2.i][c2.j];
-            boardData[c2.face][c2.i][c2.j] = temp;
+            const temp = boardData[c1.x][c1.y][c1.z];
+            boardData[c1.x][c1.y][c1.z] = boardData[c2.x][c2.y][c2.z];
+            boardData[c2.x][c2.y][c2.z] = temp;
 
-            // Перерисовываем
-            renderSingleFruit(c1.face, c1.i, c1.j, boardData[c1.face][c1.i][c1.j]);
-            renderSingleFruit(c2.face, c2.i, c2.j, boardData[c2.face][c2.i][c2.j]);
+            renderSingleFruit(c1.x, c1.y, c1.z, boardData[c1.x][c1.y][c1.z]);
+            renderSingleFruit(c2.x, c2.y, c2.z, boardData[c2.x][c2.y][c2.z]);
 
             highlightCell(selectedCell, false);
             selectedCell = null;
 
-            // Проверяем на совпадения
             setTimeout(checkMatches, 300);
         }
 
         function checkMatches() {
-            let matched = false;
-            const faces = ['top', 'front', 'right'];
+            let matchedCells = new Set();
 
-            faces.forEach(face => {
-                // Горизонтали
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    if (boardData[face][i][0] && boardData[face][i][0] === boardData[face][i][1] && boardData[face][i][1] === boardData[face][i][2]) {
-                        boardData[face][i][0] = null; boardData[face][i][1] = null; boardData[face][i][2] = null;
-                        matched = true;
+            // Проверка всех линий по осям X, Y, Z
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        // Проверка по оси X
+                        if (x === 0) {
+                            const f1 = boardData[x][y][z], f2 = boardData[x+1][y][z], f3 = boardData[x+2][y][z];
+                            if (f1 && f1 === f2 && f1 === f3) {
+                                matchedCells.add(`${x}-${y}-${z}`); matchedCells.add(`${x+1}-${y}-${z}`); matchedCells.add(`${x+2}-${y}-${z}`);
+                            }
+                        }
+                        // Проверка по оси Y
+                        if (y === 0) {
+                            const f1 = boardData[x][y][z], f2 = boardData[x][y+1][z], f3 = boardData[x][y+2][z];
+                            if (f1 && f1 === f2 && f1 === f3) {
+                                matchedCells.add(`${x}-${y}-${z}`); matchedCells.add(`${x}-${y+1}-${z}`); matchedCells.add(`${x}-${y+2}-${z}`);
+                            }
+                        }
+                        // Проверка по оси Z
+                        if (z === 0) {
+                            const f1 = boardData[x][y][z], f2 = boardData[x][y][z+1], f3 = boardData[x][y][z+2];
+                            if (f1 && f1 === f2 && f1 === f3) {
+                                matchedCells.add(`${x}-${y}-${z}`); matchedCells.add(`${x}-${y}-${z+1}`); matchedCells.add(`${x}-${y}-${z+2}`);
+                            }
+                        }
                     }
                 }
-                // Вертикали
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    if (boardData[face][0][j] && boardData[face][0][j] === boardData[face][1][j] && boardData[face][1][j] === boardData[face][2][j]) {
-                        boardData[face][0][j] = null; boardData[face][1][j] = null; boardData[face][2][j] = null;
-                        matched = true;
-                    }
-                }
-                // Диагонали
-                if (boardData[face][0][0] && boardData[face][0][0] === boardData[face][1][1] && boardData[face][1][1] === boardData[face][2][2]) {
-                    boardData[face][0][0] = null; boardData[face][1][1] = null; boardData[face][2][2] = null;
-                    matched = true;
-                }
-                if (boardData[face][0][2] && boardData[face][0][2] === boardData[face][1][1] && boardData[face][1][1] === boardData[face][2][0]) {
-                    boardData[face][0][2] = null; boardData[face][1][1] = null; boardData[face][2][0] = null;
-                    matched = true;
-                }
-            });
+            }
 
-            if (matched) {
-                score += 30;
+            if (matchedCells.size > 0) {
+                matchedCells.forEach(key => {
+                    const [x, y, z] = key.split('-').map(Number);
+                    boardData[x][y][z] = null;
+                });
+
+                score += matchedCells.size * 10;
                 scoreElement.innerText = `Очки: ${score}`;
+                
                 renderAllFruits();
                 setTimeout(fillEmptyCells, 300);
             }
         }
 
         function fillEmptyCells() {
-            ['top', 'front', 'right'].forEach(face => {
-                // Для каждой колонки (j) спускаем фрукты вниз
-                for (let j = 0; j < GRID_SIZE; j++) {
+            // Падение по оси Y (сверху вниз)
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let z = 0; z < GRID_SIZE; z++) {
                     let emptySpaces = 0;
-                    for (let i = GRID_SIZE - 1; i >= 0; i--) {
-                        if (boardData[face][i][j] === null) {
+                    for (let y = GRID_SIZE - 1; y >= 0; y--) {
+                        if (boardData[x][y][z] === null) {
                             emptySpaces++;
                         } else if (emptySpaces > 0) {
-                            // Сдвигаем вниз
-                            boardData[face][i + emptySpaces][j] = boardData[face][i][j];
-                            boardData[face][i][j] = null;
+                            boardData[x][y + emptySpaces][z] = boardData[x][y][z];
+                            boardData[x][y][z] = null;
                         }
                     }
-                    // Заполняем пустые сверху новыми фруктами
-                    for (let i = 0; i < emptySpaces; i++) {
-                        boardData[face][i][j] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+                    // Заполняем пустые сверху
+                    for (let y = 0; y < emptySpaces; y++) {
+                        boardData[x][y][z] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
                     }
                 }
-            });
+            }
             renderAllFruits();
-            setTimeout(checkMatches, 300);
+            setTimeout(checkMatches, 300); // Каскадные совпадения
         }
 
         // --- Управление ---
