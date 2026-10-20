@@ -4,83 +4,66 @@ tg.expand();
 
 const container = document.getElementById('game-container');
 
+// 1. Настройка сцены и камеры
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(3, 3, 3);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Ставим камеру на одинаковое расстояние по всем осям, чтобы смотреть ровно в центр (0,0,0)
+camera.position.set(4, 4, 4); 
+camera.lookAt(0, 0, 0);
 
+// 2. Настройка рендерера
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Защита от слишком больших текстур на телефонах
 container.appendChild(renderer.domElement);
 
-// Свет
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+// 3. Свет
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
 directionalLight.position.set(5, 10, 7);
 scene.add(directionalLight);
 
-// --- СОЗДАЕМ ИГРОВОЕ ПОЛЕ ---
-
-// Генерируем текстуру для сетки (чтобы видеть клетки)
+// 4. Создание текстуры сетки
 function createGridTexture() {
-    const size = 512; // Размер текстуры
+    const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // Фон грани
-    ctx.fillStyle = '#4a86ff';
+    ctx.fillStyle = '#4a86ff'; // Синий фон
     ctx.fillRect(0, 0, size, size);
 
-    // Рисуем сетку (3x3)
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4; // Толщина линий
+    ctx.strokeStyle = '#ffffff'; // Белая сетка
+    ctx.lineWidth = 6;
     const step = size / 3;
 
     for (let i = 1; i < 3; i++) {
-        // Вертикальные линии
-        ctx.beginPath();
-        ctx.moveTo(i * step, 0);
-        ctx.lineTo(i * step, size);
-        ctx.stroke();
-
-        // Горизонтальные линии
-        ctx.beginPath();
-        ctx.moveTo(0, i * step);
-        ctx.lineTo(size, i * step);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(i * step, 0); ctx.lineTo(i * step, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i * step); ctx.lineTo(size, i * step); ctx.stroke();
     }
 
-    // Добавляем рамку по краям
-    ctx.lineWidth = 8;
+    // Рамка по краям
+    ctx.lineWidth = 12;
     ctx.strokeRect(0, 0, size, size);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    return texture;
+    return new THREE.CanvasTexture(canvas);
 }
 
-const gridTexture = createGridTexture();
-const material = new THREE.MeshStandardMaterial({ 
-    map: gridTexture,
-    transparent: true,
-    opacity: 0.9
-});
-
-const geometry = new THREE.BoxGeometry(2, 2, 2);
+// 5. Создание куба
+const geometry = new THREE.BoxGeometry(2.5, 2.5, 2.5); // Чуть увеличил размер
+const material = new THREE.MeshStandardMaterial({ map: createGridTexture() });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
-// --- УПРАВЛЕНИЕ ВРАЩЕНИЕМ (свайпы) ---
-
+// 6. Управление вращением
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
-// Обработка нажатия (мышь/палец)
 function onPointerDown(e) {
     isDragging = true;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -88,9 +71,10 @@ function onPointerDown(e) {
     previousMousePosition = { x: clientX, y: clientY };
 }
 
-// Обработка движения
 function onPointerMove(e) {
     if (!isDragging) return;
+    // Предотвращаем скролл страницы при свайпе
+    if(e.cancelable) e.preventDefault(); 
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -100,7 +84,6 @@ function onPointerMove(e) {
         y: clientY - previousMousePosition.y
     };
 
-    // Вращаем куб (коэффициент 0.01 для плавности)
     cube.rotation.y += deltaMove.x * 0.01;
     cube.rotation.x += deltaMove.y * 0.01;
 
@@ -111,27 +94,34 @@ function onPointerUp() {
     isDragging = false;
 }
 
-// Привязываем события
 renderer.domElement.addEventListener('mousedown', onPointerDown);
 renderer.domElement.addEventListener('mousemove', onPointerMove);
 window.addEventListener('mouseup', onPointerUp);
 
-// Для тач-экранов (телефоны)
 renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: false });
 renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: false });
 window.addEventListener('touchend', onPointerUp);
 
+// 7. Функция для корректного изменения размера
+function onWindowResize() {
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
 
-// Анимация (без автовращения, только рендер)
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+}
+
+// Привязываем ресайз к разным событиям
+window.addEventListener('resize', onWindowResize);
+window.addEventListener('orientationchange', onWindowResize);
+
+// 8. Запуск рендера
 function animate() {
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
 }
 
+// Вызываем ресайз один раз при старте, чтобы камера встала ровно
+onWindowResize(); 
 animate();
-
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
