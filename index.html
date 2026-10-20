@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>3D Fruit Match-3 6x6</title>
+    <title>3D Fruit Match-3 5x5</title>
     <style>
         body {
             margin: 0;
@@ -75,8 +75,8 @@
         let scene, camera, renderer, cube;
         let score = 0;
         
-        const GRID_SIZE = 6; 
-        const CUBE_SIZE = 6; 
+        const GRID_SIZE = 5; 
+        const CUBE_SIZE = 5; 
         const CELL_SIZE = CUBE_SIZE / GRID_SIZE; 
 
         const FRUITS = ['🍎', '🍊', '🍋', '🍇', '🍉', '🍌', '🍓', '🍒'];
@@ -85,8 +85,8 @@
         let cellMeshes = []; 
         let fruitMeshes = {}; 
         let selectedCell = null;
+        let highlightMesh = null; 
 
-        // Создание текстур
         function createFruitTexture(emoji) {
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -110,8 +110,9 @@
             cellMeshes = [];
             fruitMeshes = {};
             selectedCell = null;
+            highlightMesh = null;
 
-            // Инициализация данных с проверкой на стартовые совпадения (чтобы не было тройных подряд сразу)
+            // Защита от стартовых совпадений
             ['top', 'front', 'right'].forEach(face => {
                 boardData[face] = [];
                 for (let i = 0; i < GRID_SIZE; i++) {
@@ -132,9 +133,8 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xf4f1ea);
 
-            // Фиксированная камера
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(12, 12, 12); 
+            camera.position.set(10, 10, 10); 
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -252,6 +252,67 @@
             fruitMeshes[key] = mesh;
         }
 
+        // --- ИСПРАВЛЕННОЕ ВЫДЕЛЕНИЕ (Идеальный квадрат) ---
+        function showHighlight(cellData) {
+            if (highlightMesh) {
+                cube.remove(highlightMesh);
+                highlightMesh.geometry.dispose();
+                highlightMesh.material.dispose();
+            }
+
+            // Используем PlaneGeometry и делаем её прозрачной в центре через текстуру или EdgeGeometry
+            // Самый простой способ сделать рамку - создать плоский квадрат и добавить в него 4 линии
+            const group = new THREE.Group();
+            const size = CELL_SIZE * 0.9;
+            const thickness = 0.05;
+            const mat = new THREE.MeshBasicMaterial({ color: 0x4a86ff, depthTest: false });
+            
+            // Верхняя линия
+            const topGeo = new THREE.PlaneGeometry(size, thickness);
+            const topMesh = new THREE.Mesh(topGeo, mat);
+            topMesh.position.y = size / 2;
+            group.add(topMesh);
+            
+            // Нижняя линия
+            const botMesh = new THREE.Mesh(topGeo, mat);
+            botMesh.position.y = -size / 2;
+            group.add(botMesh);
+            
+            // Левая линия
+            const sideGeo = new THREE.PlaneGeometry(thickness, size);
+            const leftMesh = new THREE.Mesh(sideGeo, mat);
+            leftMesh.position.x = -size / 2;
+            group.add(leftMesh);
+            
+            // Правая линия
+            const rightMesh = new THREE.Mesh(sideGeo, mat);
+            rightMesh.position.x = size / 2;
+            group.add(rightMesh);
+
+            const cell3D = getCell3D(cellData.face, cellData.i, cellData.j);
+            group.position.copy(cell3D.pos);
+            group.rotation.set(cell3D.rotX, cell3D.rotY, 0);
+
+            const offset = CELL_SIZE * 0.02;
+            if (cellData.face === 'top') group.position.y += offset;
+            if (cellData.face === 'front') group.position.z += offset;
+            if (cellData.face === 'right') group.position.x += offset;
+
+            cube.add(group);
+            highlightMesh = group;
+        }
+
+        function removeHighlight() {
+            if (highlightMesh) {
+                cube.remove(highlightMesh);
+                highlightMesh.children.forEach(child => {
+                    child.geometry.dispose();
+                    child.material.dispose();
+                });
+                highlightMesh = null;
+            }
+        }
+
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -268,66 +329,38 @@
                 
                 if (!selectedCell) {
                     selectedCell = clicked;
-                    highlightCell(clicked, true);
+                    showHighlight(clicked);
                 } else {
                     if (selectedCell.face === clicked.face && selectedCell.i === clicked.i && selectedCell.j === clicked.j) {
-                        highlightCell(selectedCell, false);
+                        removeHighlight();
                         selectedCell = null;
                         return;
                     }
+                    
                     if (isAdjacent(selectedCell, clicked)) {
                         swapFruits(selectedCell, clicked);
+                        removeHighlight();
+                        selectedCell = null;
                     } else {
-                        highlightCell(selectedCell, false);
+                        removeHighlight();
                         selectedCell = clicked;
-                        highlightCell(selectedCell, true);
+                        showHighlight(clicked);
                     }
                 }
             }
         }
 
-        function highlightCell(cellData, isActive) {
-            const key = `${cellData.face}-${cellData.i}-${cellData.j}`;
-            const mesh = fruitMeshes[key];
-            if (mesh) {
-                if (isActive) mesh.material.color.setHex(0xffaaaa);
-                else mesh.material.color.setHex(0xffffff);
-            }
-        }
-
-        // ИСПРАВЛЕННАЯ ПРОВЕРКА СОСЕДСТВА (С УЧЕТОМ РЕБЕР)
         function isAdjacent(c1, c2) {
-            // Внутри одной грани
             if (c1.face === c2.face) {
                 return (Math.abs(c1.i - c2.i) === 1 && c1.j === c2.j) || 
                        (Math.abs(c1.j - c2.j) === 1 && c1.i === c2.i);
             }
-
-            // Стык Верхней и Передней граней (верхний край передней = нижний край верхней)
-            // Верхняя: j = GRID_SIZE-1 (дальний край). Передняя: j = 0 (верхний край).
-            if (c1.face === 'top' && c2.face === 'front') {
-                return (c1.j === GRID_SIZE - 1 && c2.j === 0 && c1.i === c2.i);
-            }
-            if (c1.face === 'front' && c2.face === 'top') {
-                return (c1.j === 0 && c2.j === GRID_SIZE - 1 && c1.i === c2.i);
-            }
-
-            // Стык Передней и Правой граней (правый край передней = левый край правой)
-            if (c1.face === 'front' && c2.face === 'right') {
-                return (c1.i === GRID_SIZE - 1 && c2.i === 0 && c1.j === c2.j);
-            }
-            if (c1.face === 'right' && c2.face === 'front') {
-                return (c1.i === 0 && c2.i === GRID_SIZE - 1 && c1.j === c2.j);
-            }
-
-            // Стык Верхней и Правой граней (правый край верхней = верхний край правой)
-            if (c1.face === 'top' && c2.face === 'right') {
-                return (c1.i === GRID_SIZE - 1 && c2.j === 0 && c1.j === c2.i);
-            }
-            if (c1.face === 'right' && c2.face === 'top') {
-                return (c1.i === 0 && c2.j === GRID_SIZE - 1 && c1.j === c2.i);
-            }
-
+            if (c1.face === 'top' && c2.face === 'front') return (c1.j === GRID_SIZE - 1 && c2.j === 0 && c1.i === c2.i);
+            if (c1.face === 'front' && c2.face === 'top') return (c1.j === 0 && c2.j === GRID_SIZE - 1 && c1.i === c2.i);
+            if (c1.face === 'front' && c2.face === 'right') return (c1.i === GRID_SIZE - 1 && c2.i === 0 && c1.j === c2.j);
+            if (c1.face === 'right' && c2.face === 'front') return (c1.i === 0 && c2.i === GRID_SIZE - 1 && c1.j === c2.j);
+            if (c1.face === 'top' && c2.face === 'right') return (c1.i === GRID_SIZE - 1 && c2.j === 0 && c1.j === c2.i);
+            if (c1.face === 'right' && c2.face === 'top') return (c1.i === 0 && c2.j === GRID_SIZE - 1 && c1.j === c2.i);
             return false;
         }
 
@@ -339,16 +372,13 @@
             renderSingleFruit(c1.face, c1.i, c1.j, boardData[c1.face][c1.i][c1.j]);
             renderSingleFruit(c2.face, c2.i, c2.j, boardData[c2.face][c2.i][c2.j]);
 
-            highlightCell(selectedCell, false);
-            selectedCell = null;
-
             setTimeout(checkMatches, 300);
         }
 
         function checkMatches() {
             let matchedCells = new Set();
 
-            // 1. Проверка линий ВНУТРИ каждой грани
+            // 1. Внутри граней
             ['top', 'front', 'right'].forEach(face => {
                 const data = boardData[face];
                 for (let i = 0; i < GRID_SIZE; i++) {
@@ -367,10 +397,10 @@
                 }
             });
 
-            // 2. Проверка переходов ВЕРХ -> ПЕРЕД (линии сверху вниз через ребро)
+            // 2. Переходы Верх -> Перед (вертикальные линии через ребро)
             for (let i = 0; i < GRID_SIZE; i++) {
-                const f1 = boardData['top'][i][GRID_SIZE-1]; // Нижний край верхней
-                const f2 = boardData['front'][i][0];         // Верхний край передней
+                const f1 = boardData['top'][i][GRID_SIZE-1];
+                const f2 = boardData['front'][i][0];
                 const f3 = boardData['front'][i][1];
                 const f4 = boardData['top'][i][GRID_SIZE-2];
 
@@ -382,10 +412,10 @@
                 }
             }
 
-            // 3. Проверка переходов ПЕРЕД -> ПРАВО (линии слева направо через ребро)
+            // 3. Переходы Перед -> Право (горизонтальные линии через ребро)
             for (let j = 0; j < GRID_SIZE; j++) {
-                const f1 = boardData['front'][GRID_SIZE-1][j]; // Правый край передней
-                const f2 = boardData['right'][0][j];           // Левый край правой
+                const f1 = boardData['front'][GRID_SIZE-1][j];
+                const f2 = boardData['right'][0][j];
                 const f3 = boardData['right'][1][j];
                 const f4 = boardData['front'][GRID_SIZE-2][j];
 
@@ -416,14 +446,12 @@
                 for (let i = 0; i < GRID_SIZE; i++) {
                     for (let j = 0; j < GRID_SIZE; j++) {
                         if (boardData[face][i][j] === null) {
-                            // Сдвиг вниз
                             for (let k = j; k > 0; k--) {
                                 if (boardData[face][i][k-1] !== null) {
                                     boardData[face][i][k] = boardData[face][i][k-1];
                                     boardData[face][i][k-1] = null;
                                 }
                             }
-                            // Спавн нового
                             if (boardData[face][i][0] === null) {
                                 boardData[face][i][0] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
                             }
