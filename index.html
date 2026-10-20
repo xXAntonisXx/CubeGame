@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Casino Slot Machine</title>
+    <title>Casino</title>
     <style>
+        /* --- ОБЩИЕ СТИЛИ --- */
         body {
             margin: 0;
             padding: 0;
@@ -21,464 +22,551 @@
         }
 
         #game-container {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .machine {
-            background: linear-gradient(145deg, #2a2a40, #161626);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 
-                0 20px 50px rgba(0,0,0,0.5),
-                inset 0 2px 5px rgba(255,255,255,0.1),
-                inset 0 -5px 15px rgba(0,0,0,0.5);
-            border: 4px solid #ffd700;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 20px;
-        }
-
-        /* Экран с барабанами */
-        .screen {
-            background-color: #eee;
-            padding: 0;
-            border-radius: 10px;
-            display: flex;
-            gap: 5px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-            border: 3px solid #555;
-            overflow: hidden;
-            position: relative;
-            height: 110px;
-            background-image: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(255,255,255,0) 20%, rgba(255,255,255,0) 80%, rgba(0,0,0,0.3) 100%);
-        }
-
-        /* Контейнер для вращения */
-        .reel-window {
-            width: 80px;
-            height: 100px;
-            background-color: #fff;
-            border-radius: 5px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid #ccc;
-            box-shadow: inset 0 5px 10px rgba(0,0,0,0.2);
-            margin: 5px 0;
-        }
-
-        /* Лента с символами */
-        .reel-strip {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            will-change: transform; /* Оптимизация для анимации */
-        }
-
-        .symbol {
-            width: 100%;
-            height: 100px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 50px;
-            line-height: 1;
-        }
-
-        /* Рычаг */
-        .lever-container {
-            position: relative;
-            width: 60px;
-            height: 180px;
-            display: flex;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        .lever-base {
-            width: 20px;
             height: 100%;
-            background: linear-gradient(to right, #555, #888, #555);
-            border-radius: 10px;
-            position: absolute;
-            bottom: 0;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
-        .lever-arm {
-            width: 15px;
-            height: 80px;
-            background: linear-gradient(to right, #999, #ccc, #999);
-            position: absolute;
-            bottom: 50px;
-            border-radius: 8px;
-            transform-origin: bottom center;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            padding-top: 5px;
-        }
-
-        .lever-arm.pulled {
-            transform: rotateX(50deg);
-        }
-
-        .lever-knob {
-            width: 45px;
-            height: 45px;
-            background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000);
-            border-radius: 50%;
-            position: absolute;
-            top: -30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.6), inset -2px -2px 10px rgba(0,0,0,0.3);
-            transition: 0.2s;
-        }
-
-        .lever-container:active .lever-knob {
-            transform: scale(0.9);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.6);
-        }
-
-        /* Интерфейс */
-        .ui-panel {
-            margin-top: 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-
-        .balance {
-            font-size: 28px;
-            font-weight: bold;
-            color: #ffd700;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            margin-bottom: 10px;
-        }
-
-        .message {
-            font-size: 20px;
-            height: 30px;
-            color: #4ade80;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        .bet-controls {
-            display: flex;
-            gap: 20px;
             justify-content: center;
+        }
+
+        /* Верхняя панель (Баланс) */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.5);
             padding: 10px 20px;
             border-radius: 12px;
-            border: 1px solid #333;
+            border: 1px solid #ffd700;
+            z-index: 100;
         }
 
-        .bet-btn {
-            background: #333;
-            color: white;
-            border: 2px solid #ffd700;
-            border-radius: 8px;
-            padding: 8px 15px;
-            font-size: 18px;
+        .balance { font-size: 20px; font-weight: bold; color: #ffd700; }
+        .back-btn {
+            background: #333; color: white; border: 1px solid #ffd700;
+            padding: 5px 15px; border-radius: 8px; cursor: pointer; display: none;
+        }
+
+        /* Экраны */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; }
+
+        /* --- ЛОББИ --- */
+        .menu-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .menu-btn {
+            background: linear-gradient(145deg, #2a2a40, #161626);
+            color: #ffd700;
+            border: 3px solid #ffd700;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
             cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
             transition: 0.2s;
         }
-        
-        .bet-btn:active { background: #555; }
-        .bet-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .menu-btn:active { transform: scale(0.95); }
 
-        .bet-display {
-            font-size: 18px;
-            color: #ddd;
+        /* --- СЛОТЫ (Упрощенные для интеграции) --- */
+        .machine { background: linear-gradient(145deg, #2a2a40, #161626); padding: 20px; border-radius: 20px; border: 4px solid #ffd700; display: flex; gap: 20px; align-items: center; }
+        .reel-window { width: 70px; height: 90px; background: #fff; border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 5px 10px rgba(0,0,0,0.2); }
+        .reel-strip { position: absolute; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; }
+        .symbol { width: 100%; height: 90px; display: flex; justify-content: center; align-items: center; font-size: 45px; }
+        .lever-container { width: 40px; height: 150px; cursor: pointer; position: relative; }
+        .lever-base { width: 15px; height: 100px; background: #555; position: absolute; bottom: 0; left: 12px; border-radius: 10px; }
+        .lever-arm { width: 10px; height: 70px; background: #999; position: absolute; bottom: 40px; left: 15px; border-radius: 5px; transform-origin: bottom; transition: 0.2s; }
+        .lever-arm.pulled { transform: rotateX(50deg); }
+        .lever-knob { width: 35px; height: 35px; background: radial-gradient(circle, #ff4d4d, #b30000); border-radius: 50%; position: absolute; top: -20px; left: -12px; }
+
+        /* --- БЛЭКДЖЕК --- */
+        .bj-table {
+            background: #0b6623; /* Зеленое сукно */
+            width: 90%; max-width: 400px;
+            height: 500px;
+            border-radius: 20px;
+            border: 10px solid #3e2723;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
         }
-
-        .bet-display span {
-            color: #ffd700;
+        .bj-hand { display: flex; gap: 10px; min-height: 100px; }
+        .card {
+            width: 60px; height: 90px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
             font-weight: bold;
-            font-size: 22px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
         }
-
-        .win-effect {
-            animation: flash 0.5s ease-in-out infinite alternate;
+        .card.red { color: #d32f2f; }
+        .card.black { color: #000; }
+        .card.hidden { background: repeating-linear-gradient(45deg, #2a2a40, #2a2a40 10px, #161626 10px, #161626 20px); color: transparent; }
+        
+        .bj-score { font-size: 20px; font-weight: bold; margin: 10px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .bj-controls { display: flex; gap: 15px; margin-top: 20px; }
+        .bj-btn {
+            background: #ffd700; color: #000; border: none;
+            padding: 12px 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;
         }
-
-        @keyframes flash {
-            from { box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 20px #4ade80; }
-            to { box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 50px #4ade80; }
+        .bj-btn:disabled { background: #666; color: #aaa; }
+        
+        /* Уведомления */
+        .toast {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9); border: 2px solid #ffd700; padding: 20px 40px;
+            border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center;
+            z-index: 1000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
     </style>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
+    <div class="top-bar">
+        <div class="balance">Баланс: <span id="global-balance">1000</span> 💰</div>
+        <button class="back-btn" id="back-btn" onclick="showLobby()">В меню</button>
+    </div>
+
     <div id="game-container">
-        <div class="machine">
-            <div class="screen" id="screen">
-                <!-- Контейнеры для барабанов -->
-                <div class="reel-window"><div class="reel-strip" id="strip1"></div></div>
-                <div class="reel-window"><div class="reel-strip" id="strip2"></div></div>
-                <div class="reel-window"><div class="reel-strip" id="strip3"></div></div>
-            </div>
-            
-            <div class="lever-container" id="lever" onclick="spin()">
-                <div class="lever-base"></div>
-                <div class="lever-arm" id="leverArm">
-                    <div class="lever-knob"></div>
-                </div>
+        <!-- ЛОББИ -->
+        <div class="screen" id="lobby">
+            <h1 style="color: #ffd700; font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.5);">Добро пожаловать!</h1>
+            <div class="menu-btns">
+                <button class="menu-btn" onclick="showGame('slots')">🎰 Слоты</button>
+                <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек (21)</button>
+                <button class="menu-btn" style="opacity: 0.5;">🎲 Покер (Скоро)</button>
             </div>
         </div>
 
-        <div class="ui-panel">
-            <div class="balance">Баланс: <span id="balance">1000</span> 💰</div>
-            <div class="message" id="message">Дерните рычаг!</div>
+        <!-- СЛОТЫ -->
+        <div class="screen hidden" id="slots">
+            <div class="machine">
+                <div class="reel-window"><div class="reel-strip" id="strip1"></div></div>
+                <div class="reel-window"><div class="reel-strip" id="strip2"></div></div>
+                <div class="reel-window"><div class="reel-strip" id="strip3"></div></div>
+                <div class="lever-container" onclick="spinSlots()">
+                    <div class="lever-base"></div>
+                    <div class="lever-arm" id="slot-lever"><div class="lever-knob"></div></div>
+                </div>
+            </div>
+            <div style="margin-top: 20px; font-size: 18px;">Ставка: <span id="slot-bet">100</span></div>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <button class="bj-btn" onclick="changeSlotBet(-50)">-50</button>
+                <button class="bj-btn" onclick="changeSlotBet(50)">+50</button>
+            </div>
+        </div>
+
+        <!-- БЛЭКДЖЕК -->
+        <div class="screen hidden" id="blackjack">
+            <div class="bj-table">
+                <div style="text-align: center;">
+                    <div class="bj-score">Дилер: <span id="dealer-score">?</span></div>
+                    <div class="bj-hand" id="dealer-hand"></div>
+                </div>
+                
+                <div style="text-align: center;">
+                    <div class="bj-score">Вы: <span id="player-score">0</span></div>
+                    <div class="bj-hand" id="player-hand"></div>
+                </div>
+            </div>
             
-            <div class="bet-controls">
-                <button class="bet-btn" id="betMinus" onclick="changeBet(-50)">-50</button>
-                <div class="bet-display">Ставка: <span id="bet">100</span></div>
-                <button class="bet-btn" id="betPlus" onclick="changeBet(50)">+50</button>
+            <div class="bj-controls" id="bj-controls">
+                <button class="bj-btn" id="btn-hit" onclick="bjHit()">Взять</button>
+                <button class="bj-btn" id="btn-stand" onclick="bjStand()">Хватит</button>
+            </div>
+            <div class="bj-controls" id="bj-restart" style="display: none;">
+                <button class="bj-btn" onclick="startBlackjack()">Новая раздача (Ставка 100)</button>
             </div>
         </div>
     </div>
+
+    <div class="toast" id="toast"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // --- ЗВУКОВЫЕ ЭФФЕКТЫ (Web Audio API) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
+        let balance = 1000;
+        const balanceEl = document.getElementById('global-balance');
+        const backBtn = document.getElementById('back-btn');
         
-        function playSound(frequency, type, duration) {
+        function updateBalanceUI() {
+            balanceEl.innerText = balance;
+        }
+
+        function showToast(text, color = "#ffd700") {
+            const toast = document.getElementById('toast');
+            toast.innerText = text;
+            toast.style.color = color;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2500);
+        }
+
+        // --- ЗВУКИ ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(freq, type, dur) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
+            const gain = audioCtx.createGain();
             osc.type = type;
-            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            
-            // Плавное затухание
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
             osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + dur);
+        }
+        const sClick = () => playSound(600, 'square', 0.05);
+        const sCard = () => playSound(300, 'triangle', 0.1);
+        const sWin = () => { playSound(600, 'sine', 0.2); setTimeout(() => playSound(800, 'sine', 0.3), 100); };
+        const sLose = () => { playSound(200, 'sawtooth', 0.4); };
+
+        // --- НАВИГАЦИЯ ---
+        let currentScreen = 'lobby';
+
+        function showGame(screenId) {
+            sClick();
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            backBtn.style.display = 'block';
+            currentScreen = screenId;
+
+            if (screenId === 'blackjack') {
+                resetBlackjackUI();
+            } else if (screenId === 'slots') {
+                initSlotStrips();
+            }
         }
 
-        function playClick() { playSound(800, 'square', 0.05); }
-        function playStop() { playSound(400, 'triangle', 0.1); }
-        function playWin() { 
-            playSound(600, 'sine', 0.2); 
-            setTimeout(() => playSound(800, 'sine', 0.3), 100);
-            setTimeout(() => playSound(1200, 'sine', 0.4), 250);
+        function showLobby() {
+            sClick();
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('lobby').classList.remove('hidden');
+            backBtn.style.display = 'none';
+            currentScreen = 'lobby';
         }
 
-        // --- ЛОГИКА ИГРЫ ---
-        const SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎', '7️⃣'];
-        
-        let balance = 1000;
-        let currentBet = 100;
+        // ==========================================
+        // ЛОГИКА СЛОТОВ
+        // ==========================================
+        const SLOT_SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎', '7️⃣'];
+        const STRIP_LENGTH = 30;
+        let slotBet = 100;
         let isSpinning = false;
-
-        const balanceEl = document.getElementById('balance');
-        const betEl = document.getElementById('bet');
-        const messageEl = document.getElementById('message');
-        const leverArm = document.getElementById('leverArm');
-        const screenEl = document.getElementById('screen');
-        const betMinus = document.getElementById('betMinus');
-        const betPlus = document.getElementById('betPlus');
-
-        const strips = [
+        let strips = [
             document.getElementById('strip1'),
             document.getElementById('strip2'),
             document.getElementById('strip3')
         ];
 
-        // Заполняем ленты символами (создаем длинные ленты для прокрутки)
-        const STRIP_LENGTH = 30;
-        function initStrips() {
+        function initSlotStrips() {
             strips.forEach(strip => {
                 strip.innerHTML = '';
                 for (let i = 0; i < STRIP_LENGTH; i++) {
                     const div = document.createElement('div');
                     div.className = 'symbol';
-                    div.innerText = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+                    div.innerText = SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
                     strip.appendChild(div);
                 }
+                strip.style.transform = `translateY(0px)`;
             });
         }
 
-        function changeBet(amount) {
+        function changeSlotBet(amount) {
             if (isSpinning) return;
-            let newBet = currentBet + amount;
+            sClick();
+            let newBet = slotBet + amount;
             if (newBet < 10) newBet = 10;
             if (newBet > balance) newBet = balance;
-            currentBet = newBet;
-            betEl.innerText = currentBet;
-            playClick();
+            slotBet = newBet;
+            document.getElementById('slot-bet').innerText = slotBet;
         }
 
-        // Анимация прокрутки одного барабана
-        function animateReel(stripElement, targetSymbol, duration, delay, callback) {
-            const symbolHeight = 100; // Высота одного символа в CSS
-            const totalSymbols = STRIP_LENGTH;
+        function animateSlotReel(strip, targetSym, dur, delay, cb) {
+            const symH = 90;
+            const targetIdx = Math.floor(Math.random() * (STRIP_LENGTH - 10)) + 5;
             
-            // Находим случайную позицию для целевого символа
-            const targetIndex = Math.floor(Math.random() * (totalSymbols - 10)) + 5; // Берем с запасом, чтобы не было пустоты в конце
-            
-            // Расставляем символы так, чтобы на позиции targetIndex был нужный
-            const symbols = stripElement.children;
-            for (let i = 0; i < totalSymbols; i++) {
-                if (i === targetIndex) {
-                    symbols[i].innerText = targetSymbol;
-                } else if (!symbols[i].innerText) {
-                    symbols[i].innerText = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-                }
+            for(let i=0; i<STRIP_LENGTH; i++) {
+                if(i === targetIdx) strip.children[i].innerText = targetSym;
             }
 
-            // Итоговое смещение: прокручиваем так, чтобы targetIndex оказался на экране
-            const finalTranslate = -(targetIndex * symbolHeight);
+            const finalY = -(targetIdx * symH);
             const startTime = performance.now();
 
-            function update(currentTime) {
-                const elapsed = currentTime - startTime;
-                let progress = Math.min(elapsed / duration, 1);
-                
-                // Easing функция (замедление к концу, cubic out)
+            function update(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / dur, 1);
                 const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentY = finalY * easeOut;
                 
-                // Текущее смещение
-                let currentTranslate = finalTranslate * easeOut;
-                
-                // Добавляем размытие движения
-                const speed = (finalTranslate - currentTranslate) / 10;
-                const blurAmount = Math.min(Math.abs(speed), 5);
-                
-                stripElement.style.transform = `translateY(${currentTranslate}px)`;
-                
+                strip.style.transform = `translateY(${currentY}px)`;
+
                 if (progress < 1) {
                     requestAnimationFrame(update);
                 } else {
-                    stripElement.style.transform = `translateY(${finalTranslate}px)`;
-                    playStop();
-                    if (callback) callback();
+                    playSound(400, 'triangle', 0.1);
+                    if(cb) cb();
                 }
             }
-            
-            // Задержка перед началом
-            setTimeout(() => {
-                requestAnimationFrame(update);
-            }, delay);
+            setTimeout(() => requestAnimationFrame(update), delay);
         }
 
-        function spin() {
+        function spinSlots() {
             if (isSpinning) return;
-            if (balance < currentBet) {
-                messageEl.innerText = "Недостаточно средств!";
-                messageEl.style.color = "#ff4444";
-                return;
-            }
-
-            // Инициализируем контекст аудио после клика (требование браузеров)
+            if (balance < slotBet) { showToast("Мало денег!", "#ff4444"); return; }
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             isSpinning = true;
-            balance -= currentBet;
-            balanceEl.innerText = balance;
-            messageEl.innerText = "Крутим...";
-            messageEl.style.color = "#fff";
-            screenEl.classList.remove('win-effect');
-            
-            betMinus.disabled = true;
-            betPlus.disabled = true;
+            balance -= slotBet;
+            updateBalanceUI();
+            document.getElementById('slot-lever').classList.add('pulled');
+            setTimeout(() => document.getElementById('slot-lever').classList.remove('pulled'), 300);
 
-            leverArm.classList.add('pulled');
-            setTimeout(() => leverArm.classList.remove('pulled'), 300);
-
-            // Предварительно генерируем результат
-            const results = [
-                SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
-                SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
-                SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]
+            const res = [
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)],
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)],
+                SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]
             ];
 
-            // Запускаем анимацию всех трех барабанов с разной длительностью
-            initStrips(); // Обновляем ленты
-            
-            // Барабан 1 останавливается через 2 сек
-            animateReel(strips[0], results[0], 2000, 0, () => {});
-            
-            // Барабан 2 останавливается через 2.5 сек
-            animateReel(strips[1], results[1], 2500, 200, () => {});
-            
-            // Барабан 3 останавливается через 3 сек
-            animateReel(strips[2], results[2], 3000, 400, () => {
-                checkWin(results);
+            animateSlotReel(strips[0], res[0], 1500, 0);
+            animateSlotReel(strips[1], res[1], 2000, 200);
+            animateSlotReel(strips[2], res[2], 2500, 400, () => {
+                isSpinning = false;
+                let win = 0;
+                if (res[0] === res[1] && res[1] === res[2]) {
+                    if (res[0] === '7️⃣') win = slotBet * 50;
+                    else if (res[0] === '💎') win = slotBet * 20;
+                    else win = slotBet * 10;
+                } else if (res[0] === res[1] || res[1] === res[2] || res[0] === res[2]) {
+                    win = slotBet * 2;
+                }
+
+                if (win > 0) {
+                    balance += win;
+                    updateBalanceUI();
+                    showToast(`ВЫИГРЫШ: +${win} 💰`, "#4ade80");
+                    sWin();
+                }
             });
         }
 
-        function checkWin(results) {
-            let winAmount = 0;
-            let winMessage = "";
+        // ==========================================
+        // ЛОГИКА БЛЭКДЖЕКА (21)
+        // ==========================================
+        const SUITS = ['♠', '♥', '♦', '♣'];
+        const VALUES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        const BJ_BET = 100; // Фиксированная ставка для простоты
 
-            if (results[0] === results[1] && results[1] === results[2]) {
-                if (results[0] === '7️⃣') {
-                    winAmount = currentBet * 50;
-                    winMessage = "🎉 ДЖЕКПОТ! x50 🎉";
-                } else if (results[0] === '💎') {
-                    winAmount = currentBet * 20;
-                    winMessage = "💎 БРИЛЛИАНТЫ! x20 💎";
-                } else {
-                    winAmount = currentBet * 10;
-                    winMessage = `🔥 Три ${results[0]}! x10 🔥`;
+        let deck = [];
+        let playerHand = [];
+        let dealerHand = [];
+        let bjGameActive = false;
+
+        function createDeck() {
+            let d = [];
+            for (let s of SUITS) {
+                for (let v of VALUES) {
+                    d.push({ suit: s, value: v });
                 }
-            } 
-            else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
-                winAmount = currentBet * 2;
-                winMessage = "✨ Два в ряд! x2 ✨";
             }
-
-            if (winAmount > 0) {
-                balance += winAmount;
-                balanceEl.innerText = balance;
-                messageEl.innerText = winMessage;
-                messageEl.style.color = "#4ade80";
-                screenEl.classList.add('win-effect');
-                playWin();
-            } else {
-                messageEl.innerText = "Повезет в следующий раз!";
-                messageEl.style.color = "#ff4444";
+            // Перемешиваем (Fisher-Yates)
+            for (let i = d.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [d[i], d[j]] = [d[j], d[i]];
             }
+            return d;
+        }
 
-            isSpinning = false;
-            betMinus.disabled = false;
-            betPlus.disabled = false;
+        function getCardValue(card) {
+            if (['J', 'Q', 'K'].includes(card.value)) return 10;
+            if (card.value === 'A') return 11;
+            return parseInt(card.value);
+        }
+
+        function calculateScore(hand) {
+            let score = 0;
+            let aces = 0;
+            for (let card of hand) {
+                score += getCardValue(card);
+                if (card.value === 'A') aces++;
+            }
+            // Если перебор, меняем тузы с 11 на 1
+            while (score > 21 && aces > 0) {
+                score -= 10;
+                aces--;
+            }
+            return score;
+        }
+
+        function createCardElement(card, hidden = false) {
+            const div = document.createElement('div');
+            div.className = `card ${hidden ? 'hidden' : (['♥', '♦'].includes(card.suit) ? 'red' : 'black')}`;
+            if (!hidden) {
+                div.innerHTML = `<div style="text-align:center;">${card.value}<br>${card.suit}</div>`;
+            }
+            return div;
+        }
+
+        function renderBlackjackTable() {
+            const pHandEl = document.getElementById('player-hand');
+            const dHandEl = document.getElementById('dealer-hand');
+            pHandEl.innerHTML = '';
+            dHandEl.innerHTML = '';
+
+            playerHand.forEach(c => pHandEl.appendChild(createCardElement(c)));
             
-            if (currentBet > balance) {
-                currentBet = balance >= 10 ? balance : 10;
-                betEl.innerText = currentBet;
+            dealerHand.forEach((c, index) => {
+                // Скрываем вторую карту дилера, пока игра активна
+                const isHidden = bjGameActive && index === 1;
+                dHandEl.appendChild(createCardElement(c, isHidden));
+            });
+
+            document.getElementById('player-score').innerText = calculateScore(playerHand);
+            
+            if (bjGameActive) {
+                document.getElementById('dealer-score').innerText = calculateScore([dealerHand[0]]);
+            } else {
+                document.getElementById('dealer-score').innerText = calculateScore(dealerHand);
             }
         }
 
-        // Инициализация при старте
-        initStrips();
-        betEl.innerText = currentBet;
-        balanceEl.innerText = balance;
+        function resetBlackjackUI() {
+            bjGameActive = false;
+            playerHand = [];
+            dealerHand = [];
+            renderBlackjackTable();
+            document.getElementById('bj-controls').style.display = 'none';
+            document.getElementById('bj-restart').style.display = 'flex';
+            document.getElementById('player-score').innerText = '0';
+            document.getElementById('dealer-score').innerText = '?';
+        }
+
+        function startBlackjack() {
+            if (balance < BJ_BET) { showToast("Мало денег!", "#ff4444"); return; }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            sClick();
+            balance -= BJ_BET;
+            updateBalanceUI();
+
+            deck = createDeck();
+            playerHand = [deck.pop(), deck.pop()];
+            dealerHand = [deck.pop(), deck.pop()];
+            bjGameActive = true;
+
+            renderBlackjackTable();
+
+            document.getElementById('bj-controls').style.display = 'flex';
+            document.getElementById('bj-restart').style.display = 'none';
+
+            // Проверка на мгновенный Блэкджек у игрока
+            if (calculateScore(playerHand) === 21) {
+                bjStand(); // Автоматически завершаем игру
+            }
+        }
+
+        function bjHit() {
+            if (!bjGameActive) return;
+            sCard();
+            playerHand.push(deck.pop());
+            renderBlackjackTable();
+
+            if (calculateScore(playerHand) > 21) {
+                endBlackjack("Перебор! Вы проиграли.", false);
+            }
+        }
+
+        function bjStand() {
+            if (!bjGameActive) return;
+            bjGameActive = false; // Открываем карты дилера
+            sCard();
+            
+            let dealerScore = calculateScore(dealerHand);
+            
+            // Дилер берет карты, пока не наберет 17 и больше
+            const interval = setInterval(() => {
+                if (dealerScore < 17) {
+                    dealerHand.push(deck.pop());
+                    renderBlackjackTable();
+                    dealerScore = calculateScore(dealerHand);
+                    sCard();
+                } else {
+                    clearInterval(interval);
+                    determineBjWinner();
+                }
+            }, 500);
+        }
+
+        function determineBjWinner() {
+            const pScore = calculateScore(playerHand);
+            const dScore = calculateScore(dealerHand);
+
+            if (dScore > 21) {
+                endBlackjack("У дилера перебор! Вы выиграли x2!", true);
+            } else if (pScore > dScore) {
+                endBlackjack("Вы выиграли x2!", true);
+            } else if (pScore < dScore) {
+                endBlackjack("Дилер выиграл.", false);
+            } else {
+                endBlackjack("Ничья! Ставка возвращается.", 'draw');
+            }
+        }
+
+        function endBlackjack(message, result) {
+            bjGameActive = false;
+            renderBlackjackTable();
+            
+            document.getElementById('bj-controls').style.display = 'none';
+            document.getElementById('bj-restart').style.display = 'flex';
+
+            if (result === true) {
+                balance += BJ_BET * 2;
+                updateBalanceUI();
+                showToast(message, "#4ade80");
+                sWin();
+            } else if (result === 'draw') {
+                balance += BJ_BET;
+                updateBalanceUI();
+                showToast(message, "#ffd700");
+            } else {
+                showToast(message, "#ff4444");
+                sLose();
+            }
+        }
+
+        // Инициализация
+        updateBalanceUI();
+        initSlotStrips();
     </script>
 </body>
 </html>
