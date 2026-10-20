@@ -4,63 +4,242 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>3D Fruit Match-3 5x5</title>
+    <title>Casino Slot Machine</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #f4f1ea; 
-            font-family: sans-serif;
-            user-select: none;
-            touch-action: none;
-        }
-        #game-container {
-            width: 100vw;
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            display: block;
+            color: white;
         }
-        #ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
+
+        #game-container {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 20px;
         }
-        #score-board {
-            color: #333;
-            font-size: 28px;
-            font-weight: bold;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        /* Корпус автомата */
+        .machine {
+            background: linear-gradient(145deg, #2a2a40, #161626);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 50px rgba(0,0,0,0.5),
+                inset 0 2px 5px rgba(255,255,255,0.1),
+                inset 0 -5px 15px rgba(0,0,0,0.5);
+            border: 4px solid #ffd700;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 20px;
         }
-        #restart-btn {
-            margin-top: 10px;
-            background: #ff7b54;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+
+        /* Экран с барабанами */
+        .screen {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            border: 3px solid #555;
+        }
+
+        .reel {
+            width: 80px;
+            height: 100px;
+            background-color: #eee;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #ccc;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.1);
+        }
+
+        .reel-spinning {
+            animation: spin 0.1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translateY(-10px); opacity: 0.8; }
+            50% { transform: translateY(10px); opacity: 1; }
+            100% { transform: translateY(-10px); opacity: 0.8; }
+        }
+
+        /* Рычаг */
+        .lever-container {
+            position: relative;
+            width: 40px;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .lever-base {
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(to right, #555, #888, #555);
+            border-radius: 10px;
+            position: absolute;
+            bottom: 0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .lever-arm {
+            width: 15px;
+            height: 80px;
+            background: linear-gradient(to right, #999, #ccc, #999);
+            position: absolute;
+            bottom: 50px;
             border-radius: 8px;
-            font-size: 16px;
+            cursor: pointer;
+            transform-origin: bottom center;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 5px;
+        }
+
+        .lever-arm:active, .lever-arm.pulled {
+            transform: rotateX(45deg);
+        }
+
+        .lever-knob {
+            width: 35px;
+            height: 35px;
+            background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000);
+            border-radius: 50%;
+            position: absolute;
+            top: -25px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Интерфейс */
+        .ui-panel {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .message {
+            font-size: 20px;
+            height: 25px;
+            color: #4ade80;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .bet-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .bet-btn {
+            background: #333;
+            color: white;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            padding: 5px 15px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .bet-btn:active { background: #555; }
+
+        .spin-btn {
+            background: #ffd700;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 40px;
+            font-size: 20px;
             font-weight: bold;
             cursor: pointer;
-            pointer-events: auto;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+            transition: 0.2s;
+            text-transform: uppercase;
         }
-        #restart-btn:active {
-            background: #e86a45;
+
+        .spin-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 5px rgba(255, 215, 0, 0.4);
+        }
+
+        .spin-btn:disabled {
+            background: #666;
+            color: #aaa;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Эффект выигрыша */
+        .win-effect {
+            animation: flash 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes flash {
+            from { box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 20px #4ade80; }
+            to { box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 40px #4ade80; }
         }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div id="game-container"></div>
-    
-    <div id="ui-layer">
-        <div id="score-board">Очки: 0</div>
-        <button id="restart-btn">Заново</button>
+
+    <div id="game-container">
+        <div class="machine">
+            <div class="screen" id="screen">
+                <div class="reel" id="reel1">🍒</div>
+                <div class="reel" id="reel2">🍒</div>
+                <div class="reel" id="reel3">🍒</div>
+            </div>
+            
+            <div class="lever-container">
+                <div class="lever-base"></div>
+                <div class="lever-arm" id="lever">
+                    <div class="lever-knob"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui-panel">
+            <div class="balance">Баланс: <span id="balance">1000</span> 💰</div>
+            <div class="message" id="message">Дерните рычаг!</div>
+            
+            <div class="bet-controls">
+                <button class="bet-btn" onclick="changeBet(-50)">-50</button>
+                <div>Ставка: <span id="bet">100</span></div>
+                <button class="bet-btn" onclick="changeBet(50)">+50</button>
+            </div>
+
+            <button class="spin-btn" id="spinBtn" onclick="spin()">Крутить</button>
+        </div>
     </div>
 
     <script>
@@ -68,465 +247,140 @@
         tg.ready();
         tg.expand();
 
-        const container = document.getElementById('game-container');
-        const scoreElement = document.getElementById('score-board');
-        const restartBtn = document.getElementById('restart-btn');
-
-        let scene, camera, renderer, cube;
-        let score = 0;
+        // Конфигурация игры
+        const SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎', '7️⃣'];
         
-        const GRID_SIZE = 5; 
-        const CUBE_SIZE = 5; 
-        const CELL_SIZE = CUBE_SIZE / GRID_SIZE; 
+        // Состояние игры
+        let balance = 1000;
+        let currentBet = 100;
+        let isSpinning = false;
 
-        const FRUITS = ['🍎', '🍊', '🍋', '🍇', '🍉', '🍌', '🍓', '🍒'];
-        
-        let boardData = { 'top': [], 'front': [], 'right': [] };
-        let cellMeshes = []; 
-        let fruitMeshes = {}; 
-        let selectedCell = null;
-        let highlightMesh = null; 
+        // DOM элементы
+        const reels = [
+            document.getElementById('reel1'),
+            document.getElementById('reel2'),
+            document.getElementById('reel3')
+        ];
+        const balanceEl = document.getElementById('balance');
+        const betEl = document.getElementById('bet');
+        const messageEl = document.getElementById('message');
+        const spinBtn = document.getElementById('spinBtn');
+        const lever = document.getElementById('lever');
+        const screenEl = document.getElementById('screen');
 
-        function createFruitTexture(emoji) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 128;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, 128, 128);
-            ctx.font = '100px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(emoji, 64, 64);
-            return new THREE.CanvasTexture(canvas);
+        // Функция изменения ставки
+        function changeBet(amount) {
+            if (isSpinning) return;
+            let newBet = currentBet + amount;
+            if (newBet < 10) newBet = 10;
+            if (newBet > balance) newBet = balance;
+            currentBet = newBet;
+            betEl.innerText = currentBet;
         }
 
-        const fruitTextures = {};
-        FRUITS.forEach(f => fruitTextures[f] = createFruitTexture(f));
-
-        function init() {
-            container.innerHTML = '';
-            score = 0;
-            scoreElement.innerText = `Очки: ${score}`;
-            cellMeshes = [];
-            fruitMeshes = {};
-            selectedCell = null;
-            highlightMesh = null;
-
-            ['top', 'front', 'right'].forEach(face => {
-                boardData[face] = [];
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    boardData[face][i] = [];
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        let newFruit;
-                        do {
-                            newFruit = FRUITS[Math.floor(Math.random() * FRUITS.length)];
-                        } while (
-                            (i >= 2 && boardData[face][i-1][j] === newFruit && boardData[face][i-2][j] === newFruit) ||
-                            (j >= 2 && boardData[face][i][j-1] === newFruit && boardData[face][i][j-2] === newFruit)
-                        );
-                        boardData[face][i][j] = newFruit;
-                    }
-                }
-            });
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf4f1ea);
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(10, 10, 10); 
-            camera.lookAt(0, 0, 0);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            container.appendChild(renderer.domElement);
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            directionalLight.position.set(10, 20, 15);
-            scene.add(directionalLight);
-
-            const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-            const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            cube = new THREE.Mesh(geometry, material);
-            
-            const edges = new THREE.EdgesGeometry(geometry);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xdddddd }));
-            cube.add(line);
-
-            scene.add(cube);
-
-            createInteractiveCells();
-            renderAllFruits();
-
-            bindEvents();
-            onWindowResize(); 
-            animate();
-        }
-
-        function getCell3D(face, i, j) {
-            const halfGrid = (GRID_SIZE - 1) / 2;
-            const offset = CUBE_SIZE / 2 + 0.01; 
-
-            let posX, posY, posZ;
-            let rotX = 0, rotY = 0;
-
-            if (face === 'top') {
-                posX = (i - halfGrid) * CELL_SIZE;
-                posY = offset;
-                posZ = (j - halfGrid) * CELL_SIZE;
-                rotX = -Math.PI / 2;
-            } else if (face === 'front') {
-                posX = (i - halfGrid) * CELL_SIZE;
-                posY = (GRID_SIZE - 1 - j - halfGrid) * CELL_SIZE;
-                posZ = offset;
-            } else if (face === 'right') {
-                posX = offset;
-                posY = (GRID_SIZE - 1 - j - halfGrid) * CELL_SIZE;
-                posZ = (i - halfGrid) * CELL_SIZE;
-                rotY = Math.PI / 2;
+        // Функция вращения
+        function spin() {
+            if (isSpinning) return;
+            if (balance < currentBet) {
+                messageEl.innerText = "Недостаточно средств!";
+                messageEl.style.color = "#ff4444";
+                return;
             }
 
-            return { pos: new THREE.Vector3(posX, posY, posZ), rotX, rotY };
-        }
+            // Блокируем интерфейс
+            isSpinning = true;
+            spinBtn.disabled = true;
+            balance -= currentBet;
+            balanceEl.innerText = balance;
+            messageEl.innerText = "Крутим...";
+            messageEl.style.color = "#fff";
+            screenEl.classList.remove('win-effect');
 
-        function createInteractiveCells() {
-            ['top', 'front', 'right'].forEach(face => {
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        const geo = new THREE.BoxGeometry(CELL_SIZE * 0.95, CELL_SIZE * 0.95, CELL_SIZE * 0.95);
-                        const mat = new THREE.MeshBasicMaterial({ 
-                            color: 0xffffff, transparent: true, opacity: 0.0, depthWrite: false
-                        });
-                        const mesh = new THREE.Mesh(geo, mat);
-                        
-                        const cell3D = getCell3D(face, i, j);
-                        mesh.position.copy(cell3D.pos);
-                        mesh.userData = { face, i, j };
-                        
-                        cube.add(mesh);
-                        cellMeshes.push(mesh);
-                    }
-                }
+            // Анимация рычага
+            lever.classList.add('pulled');
+            setTimeout(() => lever.classList.remove('pulled'), 200);
+
+            // Запускаем анимацию барабанов
+            reels.forEach(reel => {
+                reel.classList.add('reel-spinning');
             });
-        }
 
-        function renderAllFruits() {
-            Object.values(fruitMeshes).forEach(mesh => cube.remove(mesh));
-            fruitMeshes = {};
+            // Генерируем результаты
+            const results = [
+                SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+                SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+                SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]
+            ];
 
-            ['top', 'front', 'right'].forEach(face => {
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        const fruit = boardData[face][i][j];
-                        if (fruit) {
-                            renderSingleFruit(face, i, j, fruit);
-                        }
-                    }
-                }
-            });
-        }
+            // Останавливаем барабаны по очереди
+            setTimeout(() => {
+                reels[0].classList.remove('reel-spinning');
+                reels[0].innerText = results[0];
+            }, 1000);
 
-        function renderSingleFruit(face, i, j, fruitEmoji) {
-            const key = `${face}-${i}-${j}`;
-            if (fruitMeshes[key]) cube.remove(fruitMeshes[key]);
+            setTimeout(() => {
+                reels[1].classList.remove('reel-spinning');
+                reels[1].innerText = results[1];
+            }, 1500);
 
-            const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.9, CELL_SIZE * 0.9);
-            const mat = new THREE.MeshBasicMaterial({ 
-                map: fruitTextures[fruitEmoji], transparent: true, depthTest: false 
-            });
-            const mesh = new THREE.Mesh(geo, mat);
-
-            const cell3D = getCell3D(face, i, j);
-            mesh.position.copy(cell3D.pos);
-            mesh.rotation.set(cell3D.rotX, cell3D.rotY, 0);
-
-            const offset = CELL_SIZE * 0.01;
-            if (face === 'top') mesh.position.y += offset;
-            if (face === 'front') mesh.position.z += offset;
-            if (face === 'right') mesh.position.x += offset;
-
-            cube.add(mesh);
-            fruitMeshes[key] = mesh;
-        }
-
-        function showHighlight(cellData) {
-            if (highlightMesh) {
-                cube.remove(highlightMesh);
-                highlightMesh.geometry.dispose();
-                highlightMesh.material.dispose();
-            }
-
-            const group = new THREE.Group();
-            const size = CELL_SIZE * 0.9;
-            const thickness = 0.05;
-            const mat = new THREE.MeshBasicMaterial({ color: 0x4a86ff, depthTest: false });
-            
-            const topGeo = new THREE.PlaneGeometry(size, thickness);
-            const topMesh = new THREE.Mesh(topGeo, mat);
-            topMesh.position.y = size / 2;
-            group.add(topMesh);
-            
-            const botMesh = new THREE.Mesh(topGeo, mat);
-            botMesh.position.y = -size / 2;
-            group.add(botMesh);
-            
-            const sideGeo = new THREE.PlaneGeometry(thickness, size);
-            const leftMesh = new THREE.Mesh(sideGeo, mat);
-            leftMesh.position.x = -size / 2;
-            group.add(leftMesh);
-            
-            const rightMesh = new THREE.Mesh(sideGeo, mat);
-            rightMesh.position.x = size / 2;
-            group.add(rightMesh);
-
-            const cell3D = getCell3D(cellData.face, cellData.i, cellData.j);
-            group.position.copy(cell3D.pos);
-            group.rotation.set(cell3D.rotX, cell3D.rotY, 0);
-
-            const offset = CELL_SIZE * 0.02;
-            if (cellData.face === 'top') group.position.y += offset;
-            if (cellData.face === 'front') group.position.z += offset;
-            if (cellData.face === 'right') group.position.x += offset;
-
-            cube.add(group);
-            highlightMesh = group;
-        }
-
-        function removeHighlight() {
-            if (highlightMesh) {
-                cube.remove(highlightMesh);
-                highlightMesh.children.forEach(child => {
-                    child.geometry.dispose();
-                    child.material.dispose();
-                });
-                highlightMesh = null;
-            }
-        }
-
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
-        function handleTap(clientX, clientY) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(cellMeshes); 
-
-            if (intersects.length > 0) {
-                const clicked = intersects[0].object.userData;
+            setTimeout(() => {
+                reels[2].classList.remove('reel-spinning');
+                reels[2].innerText = results[2];
                 
-                if (!selectedCell) {
-                    selectedCell = clicked;
-                    showHighlight(clicked);
+                // Проверяем результат после остановки последнего барабана
+                checkWin(results);
+            }, 2000);
+        }
+
+        // Проверка выигрыша
+        function checkWin(results) {
+            let winAmount = 0;
+            let winMessage = "";
+
+            // Все три совпадают
+            if (results[0] === results[1] && results[1] === results[2]) {
+                if (results[0] === '7️⃣') {
+                    winAmount = currentBet * 50; // Джекпот!
+                    winMessage = "🎉 ДЖЕКПОТ! x50 🎉";
+                } else if (results[0] === '💎') {
+                    winAmount = currentBet * 20;
+                    winMessage = "💎 БРИЛЛИАНТЫ! x20 💎";
                 } else {
-                    if (selectedCell.face === clicked.face && selectedCell.i === clicked.i && selectedCell.j === clicked.j) {
-                        removeHighlight();
-                        selectedCell = null;
-                        return;
-                    }
-                    
-                    if (isAdjacent(selectedCell, clicked)) {
-                        swapFruits(selectedCell, clicked);
-                        removeHighlight();
-                        selectedCell = null;
-                    } else {
-                        removeHighlight();
-                        selectedCell = clicked;
-                        showHighlight(clicked);
-                    }
+                    winAmount = currentBet * 10;
+                    winMessage = `🔥 Три ${results[0]}! x10 🔥`;
                 }
+            } 
+            // Два совпадают
+            else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+                winAmount = currentBet * 2;
+                winMessage = "✨ Два в ряд! x2 ✨";
+            }
+
+            if (winAmount > 0) {
+                balance += winAmount;
+                balanceEl.innerText = balance;
+                messageEl.innerText = winMessage;
+                messageEl.style.color = "#4ade80";
+                screenEl.classList.add('win-effect');
+            } else {
+                messageEl.innerText = "Повезет в следующий раз!";
+                messageEl.style.color = "#ff4444";
+            }
+
+            // Разблокируем интерфейс
+            isSpinning = false;
+            spinBtn.disabled = false;
+            
+            // Корректируем ставку, если баланс упал
+            if (currentBet > balance) {
+                currentBet = balance > 0 ? balance : 10;
+                betEl.innerText = currentBet;
             }
         }
 
-        function isAdjacent(c1, c2) {
-            if (c1.face === c2.face) {
-                return (Math.abs(c1.i - c2.i) === 1 && c1.j === c2.j) || 
-                       (Math.abs(c1.j - c2.j) === 1 && c1.i === c2.i);
-            }
-            if (c1.face === 'top' && c2.face === 'front') return (c1.j === GRID_SIZE - 1 && c2.j === 0 && c1.i === c2.i);
-            if (c1.face === 'front' && c2.face === 'top') return (c1.j === 0 && c2.j === GRID_SIZE - 1 && c1.i === c2.i);
-            if (c1.face === 'front' && c2.face === 'right') return (c1.i === GRID_SIZE - 1 && c2.i === 0 && c1.j === c2.j);
-            if (c1.face === 'right' && c2.face === 'front') return (c1.i === 0 && c2.i === GRID_SIZE - 1 && c1.j === c2.j);
-            if (c1.face === 'top' && c2.face === 'right') return (c1.i === GRID_SIZE - 1 && c2.j === 0 && c1.j === c2.i);
-            if (c1.face === 'right' && c2.face === 'top') return (c1.i === 0 && c2.j === GRID_SIZE - 1 && c1.j === c2.i);
-            return false;
-        }
-
-        function swapFruits(c1, c2) {
-            const temp = boardData[c1.face][c1.i][c1.j];
-            boardData[c1.face][c1.i][c1.j] = boardData[c2.face][c2.i][c2.j];
-            boardData[c2.face][c2.i][c2.j] = temp;
-
-            renderSingleFruit(c1.face, c1.i, c1.j, boardData[c1.face][c1.i][c1.j]);
-            renderSingleFruit(c2.face, c2.i, c2.j, boardData[c2.face][c2.i][c2.j]);
-
-            setTimeout(checkMatches, 300);
-        }
-
-        // --- НОВАЯ ЛОГИКА ПРОВЕРКИ СОВПАДЕНИЙ (С ПЕРЕХОДАМИ) ---
-        
-        // Функция для получения значения клетки (с учетом перехода на другую грань)
-        function getFruitAt(face, i, j) {
-            // Если вышли за пределы - переходим на соседнюю грань
-            if (face === 'front') {
-                if (j < 0) return getFruitAt('top', i, GRID_SIZE - 1); // Вышли вверх
-                if (j >= GRID_SIZE) return getFruitAt('top', i, 0); // Вышли вниз (если нужно)
-                if (i < 0) return null; // Влево не переходим (там нет грани)
-                if (i >= GRID_SIZE) return getFruitAt('right', 0, j); // Вышли вправо
-            }
-            if (face === 'top') {
-                // Логика переходов с верхней грани
-                if (j < 0) return null;
-                if (j >= GRID_SIZE) return getFruitAt('front', i, 0); // Спускаемся на переднюю
-                if (i < 0) return null;
-                if (i >= GRID_SIZE) return getFruitAt('right', j, 0); // Переход на правую (упрощенно)
-            }
-            if (face === 'right') {
-                if (j < 0) return getFruitAt('top', 0, i); 
-                if (j >= GRID_SIZE) return null;
-                if (i < 0) return getFruitAt('front', GRID_SIZE - 1, j); // Переход на переднюю
-                if (i >= GRID_SIZE) return null;
-            }
-
-            // Если в пределах грани
-            if (i >= 0 && i < GRID_SIZE && j >= 0 && j < GRID_SIZE) {
-                return { face, i, j, fruit: boardData[face][i][j] };
-            }
-            return null;
-        }
-
-        function checkMatches() {
-            let matchedCells = new Set();
-
-            ['top', 'front', 'right'].forEach(face => {
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        const current = boardData[face][i][j];
-                        if (!current) continue;
-
-                        // Проверяем 4 направления: Вверх, Вниз, Влево, Вправо
-                        const dirs = [
-                            { di: 0, dj: -1 }, // Вверх
-                            { di: 0, dj: 1 },  // Вниз
-                            { di: -1, dj: 0 }, // Влево
-                            { di: 1, dj: 0 }   // Вправо
-                        ];
-
-                        for (let d of dirs) {
-                            // Берем 2 соседние клетки в этом направлении
-                            const n1 = getFruitAt(face, i + d.di, j + d.dj);
-                            const n2 = getFruitAt(face, i + d.di * 2, j + d.dj * 2);
-
-                            if (n1 && n2 && n1.fruit === current && n2.fruit === current) {
-                                matchedCells.add(`${face}-${i}-${j}`);
-                                matchedCells.add(`${n1.face}-${n1.i}-${n1.j}`);
-                                matchedCells.add(`${n2.face}-${n2.i}-${n2.j}`);
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (matchedCells.size > 0) {
-                matchedCells.forEach(key => {
-                    const parts = key.split('-');
-                    boardData[parts[0]][parseInt(parts[1])][parseInt(parts[2])] = null;
-                });
-
-                score += matchedCells.size * 10;
-                scoreElement.innerText = `Очки: ${score}`;
-                
-                renderAllFruits();
-                setTimeout(fillEmptyCells, 300);
-            }
-        }
-
-        function fillEmptyCells() {
-            ['top', 'front', 'right'].forEach(face => {
-                for (let i = 0; i < GRID_SIZE; i++) {
-                    for (let j = 0; j < GRID_SIZE; j++) {
-                        if (boardData[face][i][j] === null) {
-                            for (let k = j; k > 0; k--) {
-                                if (boardData[face][i][k-1] !== null) {
-                                    boardData[face][i][k] = boardData[face][i][k-1];
-                                    boardData[face][i][k-1] = null;
-                                }
-                            }
-                            if (boardData[face][i][0] === null) {
-                                boardData[face][i][0] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
-                            }
-                        }
-                    }
-                }
-            });
-            renderAllFruits();
-            setTimeout(checkMatches, 300);
-        }
-
-        // --- Управление ---
-        let isDragging = false;
-        let startX = 0, startY = 0;
-        let dragDistance = 0; 
-
-        function onPointerDown(e) {
-            isDragging = true;
-            dragDistance = 0;
-            startX = e.touches ? e.touches[0].clientX : e.clientX;
-            startY = e.touches ? e.touches[0].clientY : e.clientY;
-        }
-
-        function onPointerMove(e) {
-            if (!isDragging) return;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            dragDistance += Math.abs(clientX - startX) + Math.abs(clientY - startY);
-            startX = clientX;
-            startY = clientY;
-        }
-
-        function onPointerUp(e) {
-            if (!isDragging) return;
-            isDragging = false;
-            if (dragDistance < 15) {
-                const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-                const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-                handleTap(clientX, clientY);
-            }
-        }
-
-        function bindEvents() {
-            renderer.domElement.addEventListener('mousedown', onPointerDown);
-            renderer.domElement.addEventListener('mousemove', onPointerMove);
-            window.addEventListener('mouseup', onPointerUp);
-
-            renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: true });
-            renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: true });
-            window.addEventListener('touchend', onPointerUp);
-        }
-
-        function onWindowResize() {
-            if(!container || !camera || !renderer) return;
-            const width = container.clientWidth || window.innerWidth;
-            const height = container.clientHeight || window.innerHeight;
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-        }
-
-        window.addEventListener('resize', onWindowResize);
-        window.addEventListener('orientationchange', onWindowResize);
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if(renderer && scene && camera) renderer.render(scene, camera);
-        }
-
-        restartBtn.addEventListener('click', () => init());
-        init();
+        // Инициализация
+        betEl.innerText = currentBet;
+        balanceEl.innerText = balance;
     </script>
 </body>
 </html>
