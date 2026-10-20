@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>3D Крестики-Нолики</title>
+    <title>Fruit Cube Match-3</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #1a1a2e; 
+            background-color: #f4f1ea; 
             font-family: sans-serif;
             user-select: none;
             touch-action: none;
@@ -29,27 +29,27 @@
             align-items: center;
             padding-top: 20px;
         }
-        #status {
-            color: white;
-            font-size: 24px;
+        #score-board {
+            color: #333;
+            font-size: 28px;
             font-weight: bold;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         #restart-btn {
-            background: #4a86ff;
+            margin-top: 10px;
+            background: #ff7b54;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             pointer-events: auto;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         #restart-btn:active {
-            background: #2a4b8d;
+            background: #e86a45;
         }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -59,7 +59,7 @@
     <div id="game-container"></div>
     
     <div id="ui-layer">
-        <div id="status">Ваш ход (Крестики)</div>
+        <div id="score-board">Очки: 0</div>
         <button id="restart-btn">Заново</button>
     </div>
 
@@ -69,92 +69,120 @@
         tg.expand();
 
         const container = document.getElementById('game-container');
-        const statusText = document.getElementById('status');
+        const scoreElement = document.getElementById('score-board');
         const restartBtn = document.getElementById('restart-btn');
 
         let scene, camera, renderer, cube;
-        let cells = []; // Массив для хранения мешей клеток
-        let boardState = {}; // Состояние игры
-
-        const GRID_SIZE = 3; // 3x3
+        let score = 0;
+        
+        const GRID_SIZE = 3; 
         const CUBE_SIZE = 3;
         const CELL_SIZE = CUBE_SIZE / GRID_SIZE; 
 
-        // Состояние для каждой грани (пустая строка)
-        const faces = ['top', 'front', 'right'];
-        faces.forEach(f => boardState[f] = Array(9).fill(null));
+        // Фрукты (эмодзи для текстур)
+        const FRUITS = ['🍎', '🍊', '🍌', '🍇'];
+        let boardData = {}; // Логическое состояние сетки
+        let cellMeshes = []; // Визуальные меши для кликов
+        let fruitMeshes = {}; // Визуальные меши фруктов (ключ: "face-i-j")
 
-        let isPlayerTurn = true;
+        let selectedCell = null;
+
+        // Создаем текстуру из эмодзи
+        function createFruitTexture(emoji) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 128, 128);
+            ctx.font = '100px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const fruitTextures = {};
+        FRUITS.forEach(f => fruitTextures[f] = createFruitTexture(f));
 
         function init() {
             container.innerHTML = '';
-            faces.forEach(f => boardState[f] = Array(9).fill(null));
-            cells = [];
-            isPlayerTurn = true;
-            statusText.innerText = "Ваш ход (Крестики)";
-            statusText.style.color = "white";
+            score = 0;
+            scoreElement.innerText = `Очки: ${score}`;
+            boardData = {};
+            cellMeshes = [];
+            fruitMeshes = {};
+            selectedCell = null;
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
+            scene.background = new THREE.Color(0xf4f1ea);
 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            // Фиксированная камера, чтобы видеть 3 грани
             camera.position.set(6, 6, 6); 
             camera.lookAt(0, 0, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             container.appendChild(renderer.domElement);
 
-            // Свет
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
             directionalLight.position.set(5, 10, 7);
             scene.add(directionalLight);
 
-            // Сам куб (темный фон)
+            // Куб
             const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-            const material = new THREE.MeshStandardMaterial({ color: 0x2a4b8d });
+            const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
             cube = new THREE.Mesh(geometry, material);
             
-            // Линии сетки на кубе
             const edges = new THREE.EdgesGeometry(geometry);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x4a86ff }));
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xdddddd }));
             cube.add(line);
 
             scene.add(cube);
 
-            // Создаем невидимые (или полупрозрачные) кликабельные зоны
+            initBoardData();
             createInteractiveCells();
+            renderAllFruits();
 
             bindEvents();
             onWindowResize(); 
             animate();
         }
 
+        function initBoardData() {
+            const faces = ['top', 'front', 'right'];
+            faces.forEach(face => {
+                boardData[face] = [];
+                for(let i=0; i<GRID_SIZE; i++) {
+                    boardData[face][i] = [];
+                    for(let j=0; j<GRID_SIZE; j++) {
+                        boardData[face][i][j] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+                    }
+                }
+            });
+        }
+
         function createInteractiveCells() {
             const offset = CUBE_SIZE / 2 + 0.01; 
             const halfGrid = (GRID_SIZE - 1) / 2;
 
-            faces.forEach(face => {
+            ['top', 'front', 'right'].forEach(face => {
                 for (let i = 0; i < GRID_SIZE; i++) {
                     for (let j = 0; j < GRID_SIZE; j++) {
                         const posX = (i - halfGrid) * CELL_SIZE;
                         const posY = (j - halfGrid) * CELL_SIZE;
                         
-                        // Создаем плоский квадрат для клика
                         const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.9, CELL_SIZE * 0.9);
                         const mat = new THREE.MeshBasicMaterial({ 
                             color: 0xffffff, 
                             transparent: true, 
-                            opacity: 0.05, // Едва заметный
+                            opacity: 0.0, // Полностью прозрачные для кликов
                             side: THREE.DoubleSide
                         });
                         const mesh = new THREE.Mesh(geo, mat);
 
-                        // Позиционируем и разворачиваем
                         if (face === 'top') {
                             mesh.position.set(posX, offset, posY);
                             mesh.rotation.x = -Math.PI / 2;
@@ -165,141 +193,201 @@
                             mesh.rotation.y = Math.PI / 2;
                         }
 
-                        mesh.userData = {
-                            face: face,
-                            index: i * GRID_SIZE + j,
-                            isOccupied: false,
-                            markMesh: null
-                        };
-
+                        mesh.userData = { face, i, j };
                         cube.add(mesh);
-                        cells.push(mesh);
+                        cellMeshes.push(mesh);
                     }
                 }
             });
         }
 
-        // Отрисовка Крестика или Нолика
-        function drawMark(cell, isCross) {
-            const markGroup = new THREE.Group();
-            const color = isCross ? 0xff4444 : 0x44ff44; // Красный для X, Зеленый для O
-            const size = CELL_SIZE * 0.6;
+        function renderAllFruits() {
+            // Удаляем старые фрукты
+            Object.values(fruitMeshes).forEach(mesh => cube.remove(mesh));
+            fruitMeshes = {};
 
-            if (isCross) {
-                // Крестик (две линии)
-                const geo1 = new THREE.BoxGeometry(size, 0.05, 0.05);
-                const mat = new THREE.MeshBasicMaterial({ color: color });
-                const line1 = new THREE.Mesh(geo1, mat);
-                line1.rotation.z = Math.PI / 4;
-                
-                const line2 = new THREE.Mesh(geo1, mat);
-                line2.rotation.z = -Math.PI / 4;
-
-                markGroup.add(line1);
-                markGroup.add(line2);
-            } else {
-                // Нолик (кольцо)
-                const geo = new THREE.RingGeometry(size * 0.3, size * 0.5, 16);
-                const mat = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide });
-                const ring = new THREE.Mesh(geo, mat);
-                markGroup.add(ring);
-            }
-
-            // Привязываем маркер к позиции клетки и ее повороту
-            markGroup.position.copy(cell.position);
-            markGroup.rotation.copy(cell.rotation);
-            // Чуть выдвигаем вперед, чтобы не сливалось с кубом
-            markGroup.translateZ(0.01); 
-
-            cube.add(markGroup);
-            cell.userData.markMesh = markGroup;
-        }
-
-        // Проверка победы на одной грани
-        function checkWin(face) {
-            const state = boardState[face];
-            const winLines = [
-                [0,1,2], [3,4,5], [6,7,8], // Горизонтали
-                [0,3,6], [1,4,7], [2,5,8], // Вертикали
-                [0,4,8], [2,4,6]           // Диагонали
-            ];
-
-            for (let line of winLines) {
-                const [a, b, c] = line;
-                if (state[a] && state[a] === state[b] && state[a] === state[c]) {
-                    return state[a]; // 'X' или 'O'
+            ['top', 'front', 'right'].forEach(face => {
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        const fruit = boardData[face][i][j];
+                        if (fruit) {
+                            renderSingleFruit(face, i, j, fruit);
+                        }
+                    }
                 }
-            }
-            return null;
+            });
         }
 
-        // Ход бота (простейший ИИ)
-        function botMove() {
-            // Ищем свободные клетки
-            const freeCells = cells.filter(c => !c.userData.isOccupied);
-            if (freeCells.length === 0) return;
+        function renderSingleFruit(face, i, j, fruitEmoji) {
+            const key = `${face}-${i}-${j}`;
+            if (fruitMeshes[key]) cube.remove(fruitMeshes[key]);
 
-            // Для простоты бот ставит в случайную свободную клетку
-            // (В идеале тут можно написать умный ИИ, но для теста сойдет)
-            const randomCell = freeCells[Math.floor(Math.random() * freeCells.length)];
-            
-            randomCell.userData.isOccupied = true;
-            const face = randomCell.userData.face;
-            const idx = randomCell.userData.index;
-            
-            boardState[face][idx] = 'O';
-            drawMark(randomCell, false);
+            const offset = CUBE_SIZE / 2 + 0.02; 
+            const halfGrid = (GRID_SIZE - 1) / 2;
+            const posX = (i - halfGrid) * CELL_SIZE;
+            const posY = (j - halfGrid) * CELL_SIZE;
 
-            const winner = checkWin(face);
-            if (winner) {
-                statusText.innerText = "Победил Бот (Нолики)!";
-                statusText.style.color = "#44ff44";
-            } else {
-                isPlayerTurn = true;
-                statusText.innerText = "Ваш ход (Крестики)";
+            const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.9, CELL_SIZE * 0.9);
+            const mat = new THREE.MeshBasicMaterial({ 
+                map: fruitTextures[fruitEmoji], 
+                transparent: true, 
+                depthTest: false 
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+
+            if (face === 'top') {
+                mesh.position.set(posX, offset, posY);
+                mesh.rotation.x = -Math.PI / 2;
+            } else if (face === 'front') {
+                mesh.position.set(posX, posY, offset);
+            } else if (face === 'right') {
+                mesh.position.set(offset, posY, posX);
+                mesh.rotation.y = Math.PI / 2;
             }
+
+            cube.add(mesh);
+            fruitMeshes[key] = mesh;
         }
 
-        // Обработка клика
+        // --- ЛОГИКА ИГРЫ ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         function handleTap(clientX, clientY) {
-            if (!isPlayerTurn) return;
-
             const rect = renderer.domElement.getBoundingClientRect();
             mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(cells); 
+            const intersects = raycaster.intersectObjects(cellMeshes); 
 
             if (intersects.length > 0) {
-                const clickedCell = intersects[0].object;
+                const clicked = intersects[0].object.userData;
                 
-                if (!clickedCell.userData.isOccupied) {
-                    clickedCell.userData.isOccupied = true;
-                    const face = clickedCell.userData.face;
-                    const idx = clickedCell.userData.index;
-                    
-                    boardState[face][idx] = 'X';
-                    drawMark(clickedCell, true);
+                if (!selectedCell) {
+                    // Выбираем первый фрукт
+                    selectedCell = clicked;
+                    highlightCell(clicked, true);
+                } else {
+                    // Если нажали на тот же - снимаем выделение
+                    if (selectedCell.face === clicked.face && selectedCell.i === clicked.i && selectedCell.j === clicked.j) {
+                        highlightCell(selectedCell, false);
+                        selectedCell = null;
+                        return;
+                    }
 
-                    const winner = checkWin(face);
-                    if (winner) {
-                        statusText.innerText = "Вы победили (Крестики)!";
-                        statusText.style.color = "#ff4444";
-                        isPlayerTurn = false;
+                    // Проверяем, соседние ли это клетки
+                    if (isAdjacent(selectedCell, clicked)) {
+                        swapFruits(selectedCell, clicked);
                     } else {
-                        isPlayerTurn = false;
-                        statusText.innerText = "Ход бота...";
-                        setTimeout(botMove, 500); // Задержка для реалистичности
+                        // Если не соседние, переключаем выбор
+                        highlightCell(selectedCell, false);
+                        selectedCell = clicked;
+                        highlightCell(selectedCell, true);
                     }
                 }
             }
         }
 
-        // --- Управление кликами ---
+        function highlightCell(cellData, isActive) {
+            const key = `${cellData.face}-${cellData.i}-${cellData.j}`;
+            const mesh = fruitMeshes[key];
+            if (mesh) {
+                if (isActive) {
+                    mesh.material.color.setHex(0xaaaaaa); // Затемняем выбранный
+                } else {
+                    mesh.material.color.setHex(0xffffff); // Возвращаем цвет
+                }
+            }
+        }
+
+        function isAdjacent(c1, c2) {
+            if (c1.face !== c2.face) return false;
+            const dx = Math.abs(c1.i - c2.i);
+            const dy = Math.abs(c1.j - c2.j);
+            return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+        }
+
+        function swapFruits(c1, c2) {
+            // Меняем в данных
+            const temp = boardData[c1.face][c1.i][c1.j];
+            boardData[c1.face][c1.i][c1.j] = boardData[c2.face][c2.i][c2.j];
+            boardData[c2.face][c2.i][c2.j] = temp;
+
+            // Перерисовываем
+            renderSingleFruit(c1.face, c1.i, c1.j, boardData[c1.face][c1.i][c1.j]);
+            renderSingleFruit(c2.face, c2.i, c2.j, boardData[c2.face][c2.i][c2.j]);
+
+            highlightCell(selectedCell, false);
+            selectedCell = null;
+
+            // Проверяем на совпадения
+            setTimeout(checkMatches, 300);
+        }
+
+        function checkMatches() {
+            let matched = false;
+            const faces = ['top', 'front', 'right'];
+
+            faces.forEach(face => {
+                // Горизонтали
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    if (boardData[face][i][0] && boardData[face][i][0] === boardData[face][i][1] && boardData[face][i][1] === boardData[face][i][2]) {
+                        boardData[face][i][0] = null; boardData[face][i][1] = null; boardData[face][i][2] = null;
+                        matched = true;
+                    }
+                }
+                // Вертикали
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (boardData[face][0][j] && boardData[face][0][j] === boardData[face][1][j] && boardData[face][1][j] === boardData[face][2][j]) {
+                        boardData[face][0][j] = null; boardData[face][1][j] = null; boardData[face][2][j] = null;
+                        matched = true;
+                    }
+                }
+                // Диагонали
+                if (boardData[face][0][0] && boardData[face][0][0] === boardData[face][1][1] && boardData[face][1][1] === boardData[face][2][2]) {
+                    boardData[face][0][0] = null; boardData[face][1][1] = null; boardData[face][2][2] = null;
+                    matched = true;
+                }
+                if (boardData[face][0][2] && boardData[face][0][2] === boardData[face][1][1] && boardData[face][1][1] === boardData[face][2][0]) {
+                    boardData[face][0][2] = null; boardData[face][1][1] = null; boardData[face][2][0] = null;
+                    matched = true;
+                }
+            });
+
+            if (matched) {
+                score += 30;
+                scoreElement.innerText = `Очки: ${score}`;
+                renderAllFruits();
+                setTimeout(fillEmptyCells, 300);
+            }
+        }
+
+        function fillEmptyCells() {
+            ['top', 'front', 'right'].forEach(face => {
+                // Для каждой колонки (j) спускаем фрукты вниз
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    let emptySpaces = 0;
+                    for (let i = GRID_SIZE - 1; i >= 0; i--) {
+                        if (boardData[face][i][j] === null) {
+                            emptySpaces++;
+                        } else if (emptySpaces > 0) {
+                            // Сдвигаем вниз
+                            boardData[face][i + emptySpaces][j] = boardData[face][i][j];
+                            boardData[face][i][j] = null;
+                        }
+                    }
+                    // Заполняем пустые сверху новыми фруктами
+                    for (let i = 0; i < emptySpaces; i++) {
+                        boardData[face][i][j] = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+                    }
+                }
+            });
+            renderAllFruits();
+            setTimeout(checkMatches, 300);
+        }
+
+        // --- Управление ---
         let isDragging = false;
         let startX = 0, startY = 0;
         let dragDistance = 0; 
@@ -325,7 +413,6 @@
         function onPointerUp(e) {
             if (!isDragging) return;
             isDragging = false;
-            // Если сдвинули мало — это клик
             if (dragDistance < 15) {
                 const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
                 const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
