@@ -4,71 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Casino</title>
+    <title>Casino Royale</title>
     <style>
-        /* --- ОБЩИЕ СТИЛИ --- */
+        :root {
+            --gold: #ffd700;
+            --green-table: #0b6623;
+            --dark-bg: #1a1a2e;
+            --card-bg: #ffffff;
+            --red-suit: #d32f2f;
+            --black-suit: #111;
+        }
+
         body {
             margin: 0; padding: 0; overflow: hidden;
-            background-color: #1a1a2e;
+            background: radial-gradient(circle at center, #2a2a40 0%, #1a1a2e 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex; justify-content: center; align-items: center;
             height: 100vh; color: white; touch-action: none;
         }
+
         #game-container {
             width: 100%; height: 100%; position: relative;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
+
         .top-bar {
-            position: absolute; top: 20px; width: 90%;
+            position: absolute; top: 15px; width: 95%; max-width: 500px;
             display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 12px;
-            border: 1px solid #ffd700; z-index: 100; box-sizing: border-box;
+            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 12px;
+            border: 1px solid var(--gold); z-index: 100; box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
         }
-        .balance { font-size: 20px; font-weight: bold; color: #ffd700; }
+        .balance { font-size: 20px; font-weight: bold; color: var(--gold); text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
         .back-btn {
-            background: #333; color: white; border: 1px solid #ffd700;
-            padding: 5px 15px; border-radius: 8px; cursor: pointer; display: none;
+            background: linear-gradient(145deg, #333, #111); color: var(--gold); border: 1px solid var(--gold);
+            padding: 6px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;
         }
+        .back-btn:active { transform: scale(0.95); }
+
         .screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 1; pointer-events: auto; transition: opacity 0.2s; z-index: 10;
+            opacity: 1; pointer-events: auto; transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: scale(1); z-index: 10;
         }
-        .screen.hidden { opacity: 0; pointer-events: none; z-index: 0; }
+        .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); z-index: 0; }
         
         /* --- ЛОББИ --- */
-        .menu-btns { display: flex; flex-direction: column; gap: 20px; z-index: 20; }
+        .menu-btns { display: flex; flex-direction: column; gap: 15px; z-index: 20; }
         .menu-btn {
-            background: linear-gradient(145deg, #2a2a40, #161626); color: #ffd700;
-            border: 3px solid #ffd700; padding: 20px 40px; border-radius: 15px;
-            font-size: 24px; font-weight: bold; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s;
+            background: linear-gradient(145deg, #2a2a40, #161626); color: var(--gold);
+            border: 2px solid var(--gold); padding: 15px 40px; border-radius: 15px;
+            font-size: 20px; font-weight: bold; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: 0.2s; width: 260px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
-        .menu-btn:active { transform: scale(0.95); }
-        
-        /* --- СЛОТЫ --- */
-        .machine { background: linear-gradient(145deg, #2a2a40, #161626); padding: 20px; border-radius: 20px; border: 4px solid #ffd700; display: flex; gap: 20px; align-items: center; }
-        .reel-window { width: 70px; height: 90px; background: #fff; border-radius: 5px; overflow: hidden; position: relative; box-shadow: inset 0 5px 10px rgba(0,0,0,0.2); }
-        .reel-strip { position: absolute; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; will-change: transform; }
-        .symbol { width: 100%; height: 90px; display: flex; justify-content: center; align-items: center; font-size: 45px; line-height: 1; }
-        .lever-container { width: 40px; height: 150px; cursor: pointer; position: relative; }
-        .lever-base { width: 15px; height: 100px; background: #555; position: absolute; bottom: 0; left: 12px; border-radius: 10px; }
-        .lever-arm { width: 10px; height: 70px; background: #999; position: absolute; bottom: 40px; left: 15px; border-radius: 5px; transform-origin: bottom; transition: 0.2s; }
-        .lever-arm.pulled { transform: rotateX(50deg); }
-        .lever-knob { width: 35px; height: 35px; background: radial-gradient(circle, #ff4d4d, #b30000); border-radius: 50%; position: absolute; top: -20px; left: -12px; }
+        .menu-btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(0,0,0,0.6); }
 
-        /* --- БЛЭКДЖЕК --- */
-        .bj-table { background: #0b6623; width: 90%; max-width: 400px; height: 450px; border-radius: 20px; border: 10px solid #3e2723; box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 20px; box-sizing: border-box; position: relative; }
-        .bj-hand { display: flex; gap: 10px; min-height: 100px; }
-        .card { width: 60px; height: 90px; background: white; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; }
-        .card.red { color: #d32f2f; }
-        .card.black { color: #000; }
-        .card.hidden { background: repeating-linear-gradient(45deg, #2a2a40, #2a2a40 10px, #161626 10px, #161626 20px); color: transparent; }
-        .bj-score { font-size: 20px; font-weight: bold; margin: 10px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .bj-controls { display: flex; gap: 15px; margin-top: 20px; z-index: 20; }
-        .bj-btn { background: #ffd700; color: #000; border: none; padding: 12px 25px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        .bj-btn:disabled { background: #666; color: #aaa; }
-        .toast { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #ffd700; padding: 20px 40px; border-radius: 15px; font-size: 24px; font-weight: bold; text-align: center; z-index: 1000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        /* --- СТАВКИ --- */
+        .bet-controls { margin-top: 20px; display: flex; gap: 20px; align-items: center; z-index: 20; background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 30px; border: 1px solid #333; }
+        .bet-btn { background: #333; color: white; border: 1px solid var(--gold); border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.1s; }
+        .bet-btn:active { transform: scale(0.9); background: var(--gold); color: black; }
+        .bet-display { font-size: 18px; color: white; font-weight: bold; min-width: 100px; text-align: center; }
+        .bet-display span { color: var(--gold); font-size: 22px; }
+
+        /* --- СЛОТЫ --- */
+        .machine { background: linear-gradient(145deg, #2a2a40, #161626); padding: 20px; border-radius: 20px; border: 4px solid var(--gold); display: flex; gap: 20px; align-items: center; box-shadow: 0 15px 30px rgba(0,0,0,0.6); }
+        .reel-window { width: 70px; height: 90px; background: #fff; border-radius: 8px; overflow: hidden; position: relative; box-shadow: inset 0 10px 15px rgba(0,0,0,0.3); }
+        .reel-strip { position: absolute; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; will-change: transform; }
+        .symbol { width: 100%; height: 90px; display: flex; justify-content: center; align-items: center; font-size: 50px; line-height: 1; }
+        .lever-container { width: 50px; height: 150px; cursor: pointer; position: relative; margin-left: 10px; }
+        .lever-base { width: 15px; height: 100px; background: linear-gradient(to right, #444, #777, #444); position: absolute; bottom: 0; left: 17px; border-radius: 10px; }
+        .lever-arm { width: 10px; height: 70px; background: linear-gradient(to right, #999, #ccc, #999); position: absolute; bottom: 50px; left: 20px; border-radius: 5px; transform-origin: bottom; transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+        .lever-arm.pulled { transform: rotateX(60deg); }
+        .lever-knob { width: 36px; height: 36px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000); border-radius: 50%; position: absolute; top: -20px; left: -13px; box-shadow: 0 5px 10px rgba(0,0,0,0.6); }
+
+        /* --- СТОЛ (БЛЭКДЖЕК И ПОКЕР) --- */
+        .table {
+            background: radial-gradient(circle at center, #118c34 0%, var(--green-table) 100%);
+            width: 95%; max-width: 450px; height: 480px;
+            border-radius: 30px; border: 10px solid #3e2723;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.6), 0 20px 40px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            padding: 15px; box-sizing: border-box; position: relative;
+        }
+        
+        .hand-container { display: flex; flex-direction: column; align-items: center; width: 100%; min-height: 110px; }
+        .cards { display: flex; gap: 5px; min-height: 85px; justify-content: center; flex-wrap: wrap; align-items: center; }
+        
+        /* 3D КАРТЫ */
+        .card {
+            width: 55px; height: 80px; background: var(--card-bg); border-radius: 6px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 22px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            position: relative; color: black;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+        
+        .card.deal { animation: dealCard 0.4s ease-out forwards; }
+        @keyframes dealCard {
+            0% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .card.flipped { transform: rotateY(180deg); }
+        .card.red { color: var(--red-suit); }
+        .card.black { color: var(--black-suit); }
+        
+        .card.hidden { 
+            background: repeating-linear-gradient(45deg, #1a1a2e, #1a1a2e 8px, #2a2a40 8px, #2a2a40 16px); 
+            color: transparent; border: 2px solid #444;
+        }
+        
+        .card-inner { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column; backface-visibility: hidden; }
+        
+        .score-label { font-size: 18px; font-weight: bold; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); color: #fff; background: rgba(0,0,0,0.3); padding: 2px 10px; border-radius: 10px;}
+        
+        .action-controls { display: flex; gap: 10px; margin-top: 15px; z-index: 20; justify-content: center; width: 100%; flex-wrap: wrap; }
+        .action-btn { 
+            background: linear-gradient(145deg, var(--gold), #b89500); color: #000; 
+            border: none; padding: 12px 20px; border-radius: 10px; font-size: 16px; 
+            font-weight: bold; cursor: pointer; flex: 1; max-width: 130px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.1s;
+        }
+        .action-btn:active { transform: translateY(2px); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .action-btn:disabled { background: #555; color: #888; box-shadow: none; }
+
+        .toast { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); 
+            background: rgba(0,0,0,0.95); border: 2px solid var(--gold); padding: 20px 40px; 
+            border-radius: 20px; font-size: 22px; font-weight: bold; text-align: center; 
+            z-index: 1000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.9); width: 80%; 
+            transition: transform 0.2s; opacity: 0;
+        }
+        .toast.show { display: block; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+        #poker .card { width: 42px; height: 62px; font-size: 16px; }
+        #poker .cards { gap: 4px; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -80,14 +155,17 @@
     </div>
 
     <div id="game-container">
+        <!-- ЛОББИ -->
         <div class="screen" id="lobby">
-            <h1 style="color: #ffd700; font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.5); margin-bottom: 40px;">Казино</h1>
+            <h1 style="color: var(--gold); font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.6); margin-bottom: 30px;">Casino Royale</h1>
             <div class="menu-btns">
                 <button class="menu-btn" onclick="showGame('slots')">🎰 Слоты</button>
-                <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек (21)</button>
+                <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек</button>
+                <button class="menu-btn" onclick="showGame('poker')">♠️ Покер</button>
             </div>
         </div>
 
+        <!-- СЛОТЫ -->
         <div class="screen hidden" id="slots">
             <div class="machine">
                 <div class="reel-window"><div class="reel-strip" id="strip1"></div></div>
@@ -98,31 +176,73 @@
                     <div class="lever-arm" id="slot-lever"><div class="lever-knob"></div></div>
                 </div>
             </div>
-            <div style="margin-top: 20px; font-size: 18px;">Ставка: <span id="slot-bet">100</span></div>
-            <div style="margin-top: 10px; display: flex; gap: 10px;">
-                <button class="bj-btn" onclick="changeSlotBet(-50)">-50</button>
-                <button class="bj-btn" onclick="changeSlotBet(50)">+50</button>
+            <div class="bet-controls">
+                <button class="bet-btn" onclick="changeBet('slots', -50)">-</button>
+                <div class="bet-display">Ставка: <span id="bet-slots">100</span></div>
+                <button class="bet-btn" onclick="changeBet('slots', 50)">+</button>
             </div>
         </div>
 
+        <!-- БЛЭКДЖЕК -->
         <div class="screen hidden" id="blackjack">
-            <div class="bj-table">
-                <div style="text-align: center;">
-                    <div class="bj-score">Дилер: <span id="dealer-score">?</span></div>
-                    <div class="bj-hand" id="dealer-hand"></div>
+            <div class="table">
+                <div class="hand-container">
+                    <div class="score-label">Дилер: <span id="bj-dealer-score">?</span></div>
+                    <div class="cards" id="bj-dealer-hand"></div>
                 </div>
-                <div style="text-align: center;">
-                    <div class="bj-score">Вы: <span id="player-score">0</span></div>
-                    <div class="bj-hand" id="player-hand"></div>
+                <div class="hand-container">
+                    <div class="score-label">Вы: <span id="bj-player-score">0</span></div>
+                    <div class="cards" id="bj-player-hand"></div>
                 </div>
             </div>
             
-            <div class="bj-controls" id="bj-controls" style="display: none;">
-                <button class="bj-btn" id="btn-hit" onclick="bjHit()">Взять</button>
-                <button class="bj-btn" id="btn-stand" onclick="bjStand()">Хватит</button>
+            <div class="bet-controls" id="bj-bet-controls">
+                <button class="bet-btn" onclick="changeBet('blackjack', -50)">-</button>
+                <div class="bet-display">Ставка: <span id="bet-blackjack">100</span></div>
+                <button class="bet-btn" onclick="changeBet('blackjack', 50)">+</button>
             </div>
-            <div class="bj-controls" id="bj-restart">
-                <button class="bj-btn" id="btn-deal" onclick="startBlackjack()">Раздать (Ставка 100)</button>
+
+            <div class="action-controls" id="bj-controls" style="display: none;">
+                <button class="action-btn" onclick="bjHit()">Взять</button>
+                <button class="action-btn" onclick="bjStand()">Хватит</button>
+            </div>
+            <div class="action-controls" id="bj-restart">
+                <button class="action-btn" id="btn-bj-deal" onclick="startBlackjack()">Раздать</button>
+            </div>
+        </div>
+
+        <!-- ПОКЕР -->
+        <div class="screen hidden" id="poker">
+            <div class="table">
+                <div class="hand-container">
+                    <div class="score-label">Дилер: <span id="poker-dealer-score"></span></div>
+                    <div class="cards" id="poker-dealer-hand"></div>
+                </div>
+                
+                <div class="hand-container">
+                    <div class="score-label" style="color: #aaa; font-size: 14px; background: none;">Стол</div>
+                    <div class="cards" id="poker-community"></div>
+                </div>
+
+                <div class="hand-container">
+                    <div class="score-label">Вы: <span id="poker-player-score"></span></div>
+                    <div class="cards" id="poker-player-hand"></div>
+                </div>
+            </div>
+            
+            <div class="bet-controls" id="poker-bet-controls">
+                <button class="bet-btn" onclick="changeBet('poker', -50)">-</button>
+                <div class="bet-display">Ставка: <span id="bet-poker">100</span></div>
+                <button class="bet-btn" onclick="changeBet('poker', 50)">+</button>
+            </div>
+
+            <div class="action-controls" id="poker-action-controls" style="display: none;">
+                <button class="action-btn" onclick="pokerAction('fold')">Пас</button>
+                <button class="action-btn" onclick="pokerAction('call')">Колл</button>
+                <button class="action-btn" onclick="pokerAction('raise')">Рейз x2</button>
+            </div>
+            <div class="action-controls" id="poker-restart">
+                <button class="action-btn" id="btn-poker-deal" onclick="startPoker()">Раздать</button>
             </div>
         </div>
     </div>
@@ -136,18 +256,29 @@
 
         // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
         let balance = 1000;
+        let bets = { slots: 100, blackjack: 100, poker: 100 };
+        let currentPokerBet = 0; // Отдельная переменная для ставки в текущей раздаче
         const balanceEl = document.getElementById('global-balance');
-        const backBtn = document.getElementById('back-btn');
-        let dealerInterval = null; // Для очистки таймера дилера
+        let dealerInterval = null;
 
         function updateBalanceUI() { balanceEl.innerText = balance; }
 
-        function showToast(text, color = "#ffd700") {
+        function showToast(text, color = "var(--gold)", duration = 2500) {
             const toast = document.getElementById('toast');
             toast.innerText = text;
             toast.style.color = color;
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 2000);
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        function changeBet(game, amount) {
+            let current = bets[game];
+            let newBet = current + amount;
+            if (newBet < 10) newBet = 10;
+            if (newBet > balance) newBet = balance;
+            bets[game] = newBet;
+            document.getElementById(`bet-${game}`).innerText = newBet;
+            sClick();
         }
 
         // --- ЗВУКИ ---
@@ -173,28 +304,24 @@
             sClick();
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
-            backBtn.style.display = 'block';
+            document.getElementById('back-btn').style.display = 'block';
 
             if (screenId === 'blackjack') resetBlackjackUI();
             else if (screenId === 'slots') initSlotStrips();
+            else if (screenId === 'poker') resetPokerUI();
         }
 
         function showLobby() {
             sClick();
-            // Очищаем таймер дилера, если он был запущен, чтобы игра не зависла
             if (dealerInterval) clearInterval(dealerInterval);
-            
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('lobby').classList.remove('hidden');
-            backBtn.style.display = 'none';
+            document.getElementById('back-btn').style.display = 'none';
         }
 
-        // ==========================================
-        // ЛОГИКА СЛОТОВ
-        // ==========================================
+        // --- СЛОТЫ ---
         const SLOT_SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎', '7️⃣'];
         const STRIP_LENGTH = 30;
-        let slotBet = 100;
         let isSpinning = false;
         let strips = [document.getElementById('strip1'), document.getElementById('strip2'), document.getElementById('strip3')];
 
@@ -209,16 +336,6 @@
                 }
                 strip.style.transform = `translateY(0px)`;
             });
-        }
-
-        function changeSlotBet(amount) {
-            if (isSpinning) return;
-            sClick();
-            let newBet = slotBet + amount;
-            if (newBet < 10) newBet = 10;
-            if (newBet > balance) newBet = balance;
-            slotBet = newBet;
-            document.getElementById('slot-bet').innerText = slotBet;
         }
 
         function animateSlotReel(strip, targetSym, dur, delay, cb) {
@@ -240,11 +357,12 @@
 
         function spinSlots() {
             if (isSpinning) return;
-            if (balance < slotBet) { showToast("Мало денег!", "#ff4444"); return; }
+            const bet = bets.slots;
+            if (balance < bet) { showToast("Мало денег!", "#ff4444"); return; }
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             isSpinning = true;
-            balance -= slotBet;
+            balance -= bet;
             updateBalanceUI();
             document.getElementById('slot-lever').classList.add('pulled');
             setTimeout(() => document.getElementById('slot-lever').classList.remove('pulled'), 300);
@@ -261,27 +379,21 @@
                 isSpinning = false;
                 let win = 0;
                 if (res[0] === res[1] && res[1] === res[2]) {
-                    if (res[0] === '7️⃣') win = slotBet * 50;
-                    else if (res[0] === '💎') win = slotBet * 20;
-                    else win = slotBet * 10;
+                    if (res[0] === '7️⃣') win = bet * 50;
+                    else if (res[0] === '💎') win = bet * 20;
+                    else win = bet * 10;
                 } else if (res[0] === res[1] || res[1] === res[2] || res[0] === res[2]) {
-                    win = slotBet * 2;
+                    win = bet * 2;
                 }
                 if (win > 0) { balance += win; updateBalanceUI(); showToast(`ВЫИГРЫШ: +${win} 💰`, "#4ade80"); sWin(); }
             });
         }
 
         // ==========================================
-        // ЛОГИКА БЛЭКДЖЕКА (21)
+        // ОБЩАЯ ЛОГИКА ДЛЯ КАРТ
         // ==========================================
         const SUITS = ['♠', '♥', '♦', '♣'];
         const VALUES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-        const BJ_BET = 100;
-
-        let deck = [];
-        let playerHand = [];
-        let dealerHand = [];
-        let bjGameActive = false;
 
         function createDeck() {
             let d = [];
@@ -299,184 +411,328 @@
             return parseInt(card.value);
         }
 
-        // ТОЧНЫЙ ПОДСЧЕТ ОЧКОВ (Исправленный)
-        function calculateScore(hand) {
-            let score = 0;
-            let aces = 0;
-            for (let card of hand) {
-                score += getCardValue(card);
-                if (card.value === 'A') aces++;
-            }
-            while (score > 21 && aces > 0) {
-                score -= 10;
-                aces--;
-            }
-            return score;
-        }
-
-        function isSoftHand(hand) {
-            let score = 0;
-            let aces = 0;
-            for (let card of hand) {
-                score += getCardValue(card);
-                if (card.value === 'A') aces++;
-            }
-            return aces > 0 && score <= 21;
-        }
-
-        function createCardElement(card, hidden = false) {
+        function createCardElement(card, hidden = false, delayIndex = 0) {
             const div = document.createElement('div');
-            div.className = `card ${hidden ? 'hidden' : (['♥', '♦'].includes(card.suit) ? 'red' : 'black')}`;
-            if (!hidden) div.innerHTML = `<div style="text-align:center;">${card.value}<br>${card.suit}</div>`;
+            div.className = `card deal ${['♥', '♦'].includes(card.suit) && !hidden ? 'red' : 'black'}`;
+            div.style.animationDelay = `${delayIndex * 0.15}s`;
+            
+            const inner = document.createElement('div');
+            inner.className = 'card-inner';
+            
+            if (hidden) {
+                div.classList.add('hidden');
+            } else {
+                inner.innerHTML = `<div style="text-align:center; line-height: 1;">${card.value}<br>${card.suit}</div>`;
+            }
+            
+            div.appendChild(inner);
             return div;
         }
 
-        function renderBlackjackTable() {
-            const pHandEl = document.getElementById('player-hand');
-            const dHandEl = document.getElementById('dealer-hand');
-            pHandEl.innerHTML = '';
-            dHandEl.innerHTML = '';
+        // ==========================================
+        // БЛЭКДЖЕК (21)
+        // ==========================================
+        let bjDeck = [], bjPlayerHand = [], bjDealerHand = [], bjGameActive = false;
 
-            playerHand.forEach(c => pHandEl.appendChild(createCardElement(c)));
-            dealerHand.forEach((c, index) => {
-                const isHidden = bjGameActive && index === 1;
-                dHandEl.appendChild(createCardElement(c, isHidden));
-            });
-
-            let pScore = calculateScore(playerHand);
-            let pText = pScore + (isSoftHand(playerHand) && pScore !== 21 ? " (мягкие)" : "");
-            if (pScore > 21) pText = pScore + " (перебор)";
-            document.getElementById('player-score').innerText = pText;
-            
-            if (bjGameActive) {
-                document.getElementById('dealer-score').innerText = calculateScore([dealerHand[0]]);
-            } else {
-                let dScore = calculateScore(dealerHand);
-                let dText = dScore + (isSoftHand(dealerHand) && dScore !== 21 ? " (мягкие)" : "");
-                if (dScore > 21) dText = dScore + " (перебор)";
-                document.getElementById('dealer-score').innerText = dealerHand.length ? dText : '?';
+        function calculateBJScore(hand) {
+            let score = 0, aces = 0;
+            for (let card of hand) {
+                score += getCardValue(card);
+                if (card.value === 'A') aces++;
             }
+            while (score > 21 && aces > 0) { score -= 10; aces--; }
+            return score;
         }
 
         function resetBlackjackUI() {
-            if (dealerInterval) clearInterval(dealerInterval); // Очистка таймера
-            
+            if (dealerInterval) clearInterval(dealerInterval);
             bjGameActive = false;
-            playerHand = [];
-            dealerHand = [];
-            renderBlackjackTable();
+            bjPlayerHand = []; bjDealerHand = [];
+            renderBlackjack();
             document.getElementById('bj-controls').style.display = 'none';
             document.getElementById('bj-restart').style.display = 'flex';
+            document.getElementById('bj-bet-controls').style.display = 'flex';
+            document.getElementById('btn-bj-deal').disabled = false;
+            document.getElementById('bj-player-score').innerText = '0';
+            document.getElementById('bj-dealer-score').innerText = '?';
+        }
+
+        function renderBlackjack() {
+            const pEl = document.getElementById('bj-player-hand'), dEl = document.getElementById('bj-dealer-hand');
+            pEl.innerHTML = ''; dEl.innerHTML = '';
             
-            const btnDeal = document.getElementById('btn-deal');
-            btnDeal.disabled = false; 
+            bjPlayerHand.forEach((c, i) => pEl.appendChild(createCardElement(c, false, i)));
             
-            document.getElementById('player-score').innerText = '0';
-            document.getElementById('dealer-score').innerText = '?';
+            bjDealerHand.forEach((c, i) => {
+                const isHidden = bjGameActive && i === 1;
+                dEl.appendChild(createCardElement(c, isHidden, i));
+            });
+
+            document.getElementById('bj-player-score').innerText = calculateBJScore(bjPlayerHand);
+            document.getElementById('bj-dealer-score').innerText = bjGameActive ? calculateBJScore([bjDealerHand[0]]) : (bjDealerHand.length ? calculateBJScore(bjDealerHand) : '?');
         }
 
         function startBlackjack() {
-            // Двойная защита от быстрого клика
-            const btnDeal = document.getElementById('btn-deal');
-            if (bjGameActive || btnDeal.disabled) return; 
-            
-            if (balance < BJ_BET) { showToast("Мало денег!", "#ff4444"); return; }
+            const btn = document.getElementById('btn-bj-deal');
+            if (bjGameActive || btn.disabled) return;
+            const bet = bets.blackjack;
+            if (balance < bet) { showToast("Мало денег!", "#ff4444"); return; }
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             sClick();
-            btnDeal.disabled = true; // Мгновенная блокировка
-            balance -= BJ_BET;
+            btn.disabled = true;
+            balance -= bet;
             updateBalanceUI();
 
-            deck = createDeck();
-            playerHand = [deck.pop(), deck.pop()];
-            dealerHand = [deck.pop(), deck.pop()];
+            bjDeck = createDeck();
+            bjPlayerHand = [bjDeck.pop(), bjDeck.pop()];
+            bjDealerHand = [bjDeck.pop(), bjDeck.pop()];
             bjGameActive = true;
 
-            renderBlackjackTable();
-
+            renderBlackjack();
             document.getElementById('bj-controls').style.display = 'flex';
             document.getElementById('bj-restart').style.display = 'none';
+            document.getElementById('bj-bet-controls').style.display = 'none';
 
-            if (calculateScore(playerHand) === 21) {
+            if (calculateBJScore(bjPlayerHand) === 21) {
                 showToast("Блэкджек!", "#4ade80");
-                setTimeout(bjStand, 1000); 
+                setTimeout(bjStand, 1000);
             }
         }
 
         function bjHit() {
             if (!bjGameActive) return;
             sCard();
-            playerHand.push(deck.pop());
-            renderBlackjackTable();
-
-            if (calculateScore(playerHand) > 21) {
-                endBlackjack("Перебор! Вы проиграли.", false);
-            }
+            bjPlayerHand.push(bjDeck.pop());
+            renderBlackjack();
+            if (calculateBJScore(bjPlayerHand) > 21) endBlackjack("Перебор!", false);
         }
 
         function bjStand() {
             if (!bjGameActive) return;
-            bjGameActive = false; 
+            bjGameActive = false;
             sCard();
-            renderBlackjackTable(); 
             
-            let dealerScore = calculateScore(dealerHand);
-            
+            const dEl = document.getElementById('bj-dealer-hand');
+            if (dEl.children[1]) {
+                dEl.children[1].classList.remove('hidden');
+                const card = bjDealerHand[1];
+                dEl.children[1].querySelector('.card-inner').innerHTML = `<div style="text-align:center; line-height: 1;">${card.value}<br>${card.suit}</div>`;
+                if (['♥', '♦'].includes(card.suit)) dEl.children[1].classList.add('red');
+            }
+
+            document.getElementById('bj-dealer-score').innerText = calculateBJScore(bjDealerHand);
+
             if (dealerInterval) clearInterval(dealerInterval);
-            
             dealerInterval = setInterval(() => {
-                dealerScore = calculateScore(dealerHand);
-                if (dealerScore < 17) {
-                    dealerHand.push(deck.pop());
-                    renderBlackjackTable();
+                if (calculateBJScore(bjDealerHand) < 17) {
+                    bjDealerHand.push(bjDeck.pop());
+                    renderBlackjack();
                     sCard();
                 } else {
                     clearInterval(dealerInterval);
-                    determineBjWinner();
+                    determineBJWinner();
                 }
             }, 600);
         }
 
-        function determineBjWinner() {
-            const pScore = calculateScore(playerHand);
-            const dScore = calculateScore(dealerHand);
-
-            if (dScore > 21) {
-                endBlackjack("У дилера перебор! Вы выиграли x2!", true);
-            } else if (pScore > dScore) {
-                endBlackjack("Вы выиграли x2!", true);
-            } else if (pScore < dScore) {
-                endBlackjack("Дилер выиграл.", false);
-            } else {
-                endBlackjack("Ничья! Ставка возвращается.", 'draw');
-            }
+        function determineBJWinner() {
+            const p = calculateBJScore(bjPlayerHand), d = calculateBJScore(bjDealerHand);
+            const bet = bets.blackjack;
+            if (d > 21 || p > d) endBlackjack("Вы выиграли!", true);
+            else if (p < d) endBlackjack("Дилер выиграл.", false);
+            else endBlackjack("Ничья!", 'draw');
         }
 
-        function endBlackjack(message, result) {
+        function endBlackjack(msg, res) {
             bjGameActive = false;
-            renderBlackjackTable();
-            
             document.getElementById('bj-controls').style.display = 'none';
             document.getElementById('bj-restart').style.display = 'flex';
-            document.getElementById('btn-deal').disabled = false; 
+            document.getElementById('btn-bj-deal').disabled = false;
+            
+            const bet = bets.blackjack;
+            if (res === true) { balance += bet * 2; updateBalanceUI(); showToast(msg, "#4ade80"); sWin(); }
+            else if (res === 'draw') { balance += bet; updateBalanceUI(); showToast(msg, "#ffd700"); }
+            else { showToast(msg, "#ff4444"); sLose(); }
+        }
 
-            if (result === true) {
-                balance += BJ_BET * 2;
-                updateBalanceUI();
-                showToast(message, "#4ade80");
-                sWin();
-            } else if (result === 'draw') {
-                balance += BJ_BET;
-                updateBalanceUI();
-                showToast(message, "#ffd700");
-            } else {
-                showToast(message, "#ff4444");
+        // ==========================================
+        // ПОКЕР (УПРОЩЕННЫЙ)
+        // ==========================================
+        let pDeck = [], pPlayerHand = [], pDealerHand = [], pCommunity = [], pGameActive = false;
+        
+        function resetPokerUI() {
+            pGameActive = false;
+            pPlayerHand = []; pDealerHand = []; pCommunity = [];
+            document.getElementById('poker-player-hand').innerHTML = '';
+            document.getElementById('poker-dealer-hand').innerHTML = '';
+            document.getElementById('poker-community').innerHTML = '';
+            document.getElementById('poker-player-score').innerText = '';
+            document.getElementById('poker-dealer-score').innerText = '';
+            document.getElementById('poker-action-controls').style.display = 'none';
+            document.getElementById('poker-restart').style.display = 'flex';
+            document.getElementById('poker-bet-controls').style.display = 'flex';
+            document.getElementById('btn-poker-deal').disabled = false;
+        }
+
+        function startPoker() {
+            const btn = document.getElementById('btn-poker-deal');
+            if (pGameActive || btn.disabled) return;
+            const bet = bets.poker;
+            if (balance < bet) { showToast("Мало денег!", "#ff4444"); return; }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            sClick();
+            btn.disabled = true;
+            balance -= bet;
+            updateBalanceUI();
+            
+            currentPokerBet = bet; // Запоминаем текущую ставку
+
+            pDeck = createDeck();
+            pPlayerHand = [pDeck.pop(), pDeck.pop()];
+            pDealerHand = [pDeck.pop(), pDeck.pop()];
+            pCommunity = [];
+            pGameActive = true;
+
+            renderPoker();
+
+            document.getElementById('poker-action-controls').style.display = 'flex';
+            document.getElementById('poker-restart').style.display = 'none';
+            document.getElementById('poker-bet-controls').style.display = 'none';
+        }
+
+        function pokerAction(action) {
+            if (!pGameActive) return;
+            sClick();
+            const bet = currentPokerBet;
+
+            if (action === 'fold') {
+                pGameActive = false;
+                showToast("Вы спасовали. Дилер забирает ставку.", "#ff4444");
                 sLose();
+                endPoker();
+            } else if (action === 'call') {
+                if (pCommunity.length === 0) {
+                    pCommunity.push(pDeck.pop(), pDeck.pop(), pDeck.pop());
+                    renderPoker();
+                    sCard();
+                } 
+                else if (pCommunity.length < 5) {
+                    pCommunity.push(pDeck.pop());
+                    renderPoker();
+                    sCard();
+                } 
+                else {
+                    determinePokerWinner();
+                }
+            } else if (action === 'raise') {
+                if (balance < bet) { showToast("Не хватает на рейз!", "#ff4444"); return; }
+                balance -= bet;
+                updateBalanceUI();
+                currentPokerBet *= 2; // Увеличиваем текущую ставку
+                showToast("Рейз!", "#ffd700");
+                
+                while (pCommunity.length < 5) {
+                    pCommunity.push(pDeck.pop());
+                }
+                renderPoker();
+                determinePokerWinner();
             }
         }
 
-        // Инициализация при загрузке
+        function renderPoker() {
+            const pEl = document.getElementById('poker-player-hand');
+            const dEl = document.getElementById('poker-dealer-hand');
+            const cEl = document.getElementById('poker-community');
+            
+            if (pEl.children.length !== pPlayerHand.length) {
+                pEl.innerHTML = '';
+                pPlayerHand.forEach((c, i) => pEl.appendChild(createCardElement(c, false, i)));
+            }
+            
+            if (dEl.children.length !== pDealerHand.length) {
+                dEl.innerHTML = '';
+                pDealerHand.forEach((c, i) => dEl.appendChild(createCardElement(c, true, i)));
+            }
+            
+            if (cEl.children.length !== pCommunity.length) {
+                cEl.innerHTML = '';
+                pCommunity.forEach((c, i) => cEl.appendChild(createCardElement(c, false, i)));
+            }
+        }
+
+        function evaluateHand(cards) {
+            let values = cards.map(c => getCardValue(c)).sort((a,b)=>b-a);
+            let suits = cards.map(c => c.suit);
+            let isFlush = suits.every(s => s === suits[0]);
+
+            let isStraight = false;
+            let uniqueVals = [...new Set(values)];
+            if (uniqueVals.length === 5) {
+                if (uniqueVals[0] - uniqueVals[4] === 4) isStraight = true;
+                if (uniqueVals[0] === 14 && uniqueVals[1] === 5 && uniqueVals[4] === 2) isStraight = true;
+            }
+
+            let counts = {};
+            values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+            let countValues = Object.values(counts).sort((a,b)=>b-a);
+
+            if (isFlush && isStraight) return 8;
+            if (countValues[0] === 4) return 7;
+            if (countValues[0] === 3 && countValues[1] === 2) return 6;
+            if (isFlush) return 5;
+            if (isStraight) return 4;
+            if (countValues[0] === 3) return 3;
+            if (countValues[0] === 2 && countValues[1] === 2) return 2;
+            if (countValues[0] === 2) return 1;
+            return 0;
+        }
+
+        function determinePokerWinner() {
+            pGameActive = false;
+            
+            const dEl = document.getElementById('poker-dealer-hand');
+            dEl.innerHTML = '';
+            pDealerHand.forEach((c, i) => {
+                const cardEl = createCardElement(c, false, i);
+                cardEl.classList.add('flipped');
+                setTimeout(() => cardEl.classList.remove('flipped'), 10);
+                dEl.appendChild(cardEl);
+            });
+
+            const playerTotal = [...pPlayerHand, ...pCommunity];
+            const dealerTotal = [...pDealerHand, ...pCommunity];
+
+            const pScore = evaluateHand(playerTotal);
+            const dScore = evaluateHand(dealerTotal);
+            const bet = currentPokerBet;
+
+            if (pScore > dScore) {
+                balance += bet * 2;
+                updateBalanceUI();
+                showToast(`Вы выиграли! (Комбинация: ${pScore})`, "#4ade80", 3000);
+                sWin();
+            } else if (pScore < dScore) {
+                showToast(`Дилер выиграл! (Комбинация: ${dScore})`, "#ff4444", 3000);
+                sLose();
+            } else {
+                balance += bet;
+                updateBalanceUI();
+                showToast("Ничья! Ставка возвращена.", "#ffd700", 3000);
+            }
+
+            endPoker();
+        }
+
+        function endPoker() {
+            document.getElementById('poker-action-controls').style.display = 'none';
+            document.getElementById('poker-restart').style.display = 'flex';
+            document.getElementById('btn-poker-deal').disabled = false;
+            document.getElementById('poker-bet-controls').style.display = 'flex';
+        }
+
+        // Инициализация
         updateBalanceUI();
         initSlotStrips();
     </script>
