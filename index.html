@@ -62,6 +62,14 @@
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
         .menu-btn:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(0,0,0,0.6); }
+        
+        .info-btn {
+            background: linear-gradient(145deg, #444, #222); color: #fff;
+            border: 1px solid #777; padding: 10px 40px; border-radius: 15px;
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 260px;
+            margin-top: 10px; text-transform: uppercase;
+        }
+        .info-btn:active { transform: scale(0.95); }
 
         /* --- СТАВКИ --- */
         .bet-controls { margin-top: 20px; display: flex; gap: 20px; align-items: center; z-index: 20; background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 30px; border: 1px solid #333; }
@@ -144,6 +152,35 @@
 
         #poker .card { width: 42px; height: 62px; font-size: 16px; }
         #poker .cards { gap: 4px; }
+
+        /* --- МОДАЛЬНОЕ ОКНО КОМБИНАЦИЙ --- */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; display: none;
+            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
+            backdrop-filter: blur(3px);
+        }
+        .modal-overlay.active { display: flex; opacity: 1; pointer-events: auto; }
+        
+        .modal-content {
+            background: #1a1a2e; border: 2px solid var(--gold); border-radius: 20px;
+            width: 90%; max-width: 400px; padding: 20px; box-sizing: border-box;
+            max-height: 80vh; overflow-y: auto; position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); touch-action: pan-y; /* Разрешаем прокрутку */
+        }
+        
+        .modal-content h2 { color: var(--gold); text-align: center; margin-top: 0; text-transform: uppercase; }
+        
+        .combo-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .combo-item { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; border-left: 4px solid var(--gold); }
+        .combo-title { color: var(--gold); font-weight: bold; font-size: 16px; margin-bottom: 4px; }
+        .combo-desc { font-size: 13px; color: #ccc; }
+        
+        .close-modal {
+            position: absolute; top: 10px; right: 15px; background: none; border: none;
+            color: #fff; font-size: 28px; cursor: pointer; transition: 0.2s;
+        }
+        .close-modal:active { transform: scale(0.8); }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -162,6 +199,7 @@
                 <button class="menu-btn" onclick="showGame('slots')">🎰 Слоты</button>
                 <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек</button>
                 <button class="menu-btn" onclick="showGame('poker')">♠️ Покер</button>
+                <button class="info-btn" onclick="openCombos()">📖 Комбинации</button>
             </div>
         </div>
 
@@ -247,6 +285,61 @@
         </div>
     </div>
 
+    <!-- Модальное окно с комбинациями -->
+    <div class="modal-overlay" id="combosModal" onclick="closeCombos(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-modal" onclick="closeCombos()">×</button>
+            <h2>Комбинации Покера</h2>
+            <p style="text-align: center; font-size: 14px; color: #aaa;">Старшинство от высшего к низшему</p>
+            
+            <div class="combo-list">
+                <div class="combo-item">
+                    <div class="combo-title">1. Роял-Флеш (Royal Flush)</div>
+                    <div class="combo-desc">Туз, Король, Дама, Валет, 10 одной масти.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">2. Стрит-Флеш (Straight Flush)</div>
+                    <div class="combo-desc">5 последовательных карт одной масти.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">3. Каре (Four of a Kind)</div>
+                    <div class="combo-desc">4 карты одного достоинства.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">4. Фулл-Хаус (Full House)</div>
+                    <div class="combo-desc">Три карты одного достоинства + пара другого.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">5. Флеш (Flush)</div>
+                    <div class="combo-desc">5 карт одной масти в любом порядке.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">6. Стрит (Straight)</div>
+                    <div class="combo-desc">5 последовательных карт разных мастей.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">7. Сет (Three of a Kind)</div>
+                    <div class="combo-desc">3 карты одного достоинства.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">8. Две Пары (Two Pair)</div>
+                    <div class="combo-desc">Две карты одного достоинства + две другого.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">9. Пара (One Pair)</div>
+                    <div class="combo-desc">2 карты одного достоинства.</div>
+                </div>
+                <div class="combo-item">
+                    <div class="combo-title">10. Старшая карта (High Card)</div>
+                    <div class="combo-desc">Если нет комбинации, выигрывает старшая карта.</div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="action-btn" onclick="closeCombos()" style="max-width: 100%;">Понятно</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -257,13 +350,13 @@
         // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
         let balance = 1000;
         let bets = { slots: 100, blackjack: 100, poker: 100 };
-        let currentPokerBet = 0; // Отдельная переменная для ставки в текущей раздаче
+        let currentPokerBet = 0;
         const balanceEl = document.getElementById('global-balance');
         let dealerInterval = null;
 
         function updateBalanceUI() { balanceEl.innerText = balance; }
 
-        function showToast(text, color = "var(--gold)", duration = 2500) {
+        function showToast(text, color = "var(--gold)", duration = 3000) {
             const toast = document.getElementById('toast');
             toast.innerText = text;
             toast.style.color = color;
@@ -279,6 +372,18 @@
             bets[game] = newBet;
             document.getElementById(`bet-${game}`).innerText = newBet;
             sClick();
+        }
+
+        // --- МОДАЛЬНОЕ ОКНО ---
+        function openCombos() {
+            sClick();
+            document.getElementById('combosModal').classList.add('active');
+        }
+        function closeCombos(e) {
+            // Если передан объект события (клик по фону), проверяем, что клик именно по фону
+            if (e && e.target !== e.currentTarget) return;
+            sClick();
+            document.getElementById('combosModal').classList.remove('active');
         }
 
         // --- ЗВУКИ ---
@@ -557,7 +662,7 @@
         }
 
         // ==========================================
-        // ПОКЕР (УПРОЩЕННЫЙ)
+        // ПОКЕР (УПРОЩЕННЫЙ) - С ЧЕСТНЫМ СРАВНЕНИЕМ
         // ==========================================
         let pDeck = [], pPlayerHand = [], pDealerHand = [], pCommunity = [], pGameActive = false;
         
@@ -587,7 +692,7 @@
             balance -= bet;
             updateBalanceUI();
             
-            currentPokerBet = bet; // Запоминаем текущую ставку
+            currentPokerBet = bet;
 
             pDeck = createDeck();
             pPlayerHand = [pDeck.pop(), pDeck.pop()];
@@ -630,7 +735,7 @@
                 if (balance < bet) { showToast("Не хватает на рейз!", "#ff4444"); return; }
                 balance -= bet;
                 updateBalanceUI();
-                currentPokerBet *= 2; // Увеличиваем текущую ставку
+                currentPokerBet *= 2; 
                 showToast("Рейз!", "#ffd700");
                 
                 while (pCommunity.length < 5) {
@@ -662,6 +767,7 @@
             }
         }
 
+        // --- ЧЕСТНАЯ ОЦЕНКА ПОКЕРА ---
         function evaluateHand(cards) {
             let values = cards.map(c => getCardValue(c)).sort((a,b)=>b-a);
             let suits = cards.map(c => c.suit);
@@ -676,17 +782,25 @@
 
             let counts = {};
             values.forEach(v => counts[v] = (counts[v] || 0) + 1);
-            let countValues = Object.values(counts).sort((a,b)=>b-a);
+            
+            let sortedVals = Object.keys(counts).map(Number).sort((a, b) => {
+                if (counts[b] !== counts[a]) return counts[b] - counts[a];
+                return b - a; 
+            });
 
-            if (isFlush && isStraight) return 8;
-            if (countValues[0] === 4) return 7;
-            if (countValues[0] === 3 && countValues[1] === 2) return 6;
-            if (isFlush) return 5;
-            if (isStraight) return 4;
-            if (countValues[0] === 3) return 3;
-            if (countValues[0] === 2 && countValues[1] === 2) return 2;
-            if (countValues[0] === 2) return 1;
-            return 0;
+            let countValues = Object.values(counts).sort((a,b)=>b-a);
+            let rank = 0;
+
+            if (isFlush && isStraight) rank = 8;
+            else if (countValues[0] === 4) rank = 7;
+            else if (countValues[0] === 3 && countValues[1] === 2) rank = 6;
+            else if (isFlush) rank = 5;
+            else if (isStraight) rank = 4;
+            else if (countValues[0] === 3) rank = 3;
+            else if (countValues[0] === 2 && countValues[1] === 2) rank = 2;
+            else if (countValues[0] === 2) rank = 1;
+            
+            return { rank: rank, values: sortedVals };
         }
 
         function determinePokerWinner() {
@@ -704,22 +818,33 @@
             const playerTotal = [...pPlayerHand, ...pCommunity];
             const dealerTotal = [...pDealerHand, ...pCommunity];
 
-            const pScore = evaluateHand(playerTotal);
-            const dScore = evaluateHand(dealerTotal);
+            const pEval = evaluateHand(playerTotal);
+            const dEval = evaluateHand(dealerTotal);
             const bet = currentPokerBet;
 
-            if (pScore > dScore) {
+            let pWins = false, dWins = false;
+
+            if (pEval.rank > dEval.rank) pWins = true;
+            else if (pEval.rank < dEval.rank) dWins = true;
+            else {
+                for (let i = 0; i < pEval.values.length; i++) {
+                    if (pEval.values[i] > dEval.values[i]) { pWins = true; break; }
+                    if (pEval.values[i] < dEval.values[i]) { dWins = true; break; }
+                }
+            }
+
+            if (pWins) {
                 balance += bet * 2;
                 updateBalanceUI();
-                showToast(`Вы выиграли! (Комбинация: ${pScore})`, "#4ade80", 3000);
+                showToast(`Вы выиграли! (Ранг: ${pEval.rank}, Старшая: ${pEval.values[0]})`, "#4ade80", 4000);
                 sWin();
-            } else if (pScore < dScore) {
-                showToast(`Дилер выиграл! (Комбинация: ${dScore})`, "#ff4444", 3000);
+            } else if (dWins) {
+                showToast(`Дилер выиграл! (Ранг: ${dEval.rank}, Старшая: ${dEval.values[0]})`, "#ff4444", 4000);
                 sLose();
             } else {
                 balance += bet;
                 updateBalanceUI();
-                showToast("Ничья! Ставка возвращена.", "#ffd700", 3000);
+                showToast("Абсолютная ничья! Ставка возвращена.", "#ffd700", 4000);
             }
 
             endPoker();
