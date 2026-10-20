@@ -53,11 +53,11 @@
         .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); z-index: 0; }
         
         /* --- ЛОББИ --- */
-        .menu-btns { display: flex; flex-direction: column; gap: 15px; z-index: 20; }
+        .menu-btns { display: flex; flex-direction: column; gap: 12px; z-index: 20; }
         .menu-btn {
             background: linear-gradient(145deg, #2a2a40, #161626); color: var(--gold);
-            border: 2px solid var(--gold); padding: 15px 40px; border-radius: 15px;
-            font-size: 20px; font-weight: bold; cursor: pointer; text-transform: uppercase;
+            border: 2px solid var(--gold); padding: 12px 30px; border-radius: 15px;
+            font-size: 18px; font-weight: bold; cursor: pointer; text-transform: uppercase;
             box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: 0.2s; width: 260px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
@@ -65,9 +65,9 @@
         
         .info-btn {
             background: linear-gradient(145deg, #444, #222); color: #fff;
-            border: 1px solid #777; padding: 10px 40px; border-radius: 15px;
+            border: 1px solid #777; padding: 10px 30px; border-radius: 15px;
             font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 260px;
-            margin-top: 10px; text-transform: uppercase;
+            margin-top: 5px; text-transform: uppercase;
         }
         .info-btn:active { transform: scale(0.95); }
 
@@ -89,7 +89,7 @@
         .lever-arm.pulled { transform: rotateX(60deg); }
         .lever-knob { width: 36px; height: 36px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000); border-radius: 50%; position: absolute; top: -20px; left: -13px; box-shadow: 0 5px 10px rgba(0,0,0,0.6); }
 
-        /* --- СТОЛ (БЛЭКДЖЕК И ПОКЕР) --- */
+        /* --- СТОЛ (КАРТОЧНЫЕ ИГРЫ) --- */
         .table {
             background: radial-gradient(circle at center, #118c34 0%, var(--green-table) 100%);
             width: 95%; max-width: 450px; height: 480px;
@@ -129,7 +129,7 @@
         
         .card-inner { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column; backface-visibility: hidden; }
         
-        .score-label { font-size: 18px; font-weight: bold; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); color: #fff; background: rgba(0,0,0,0.3); padding: 2px 10px; border-radius: 10px;}
+        .score-label { font-size: 16px; font-weight: bold; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); color: #fff; background: rgba(0,0,0,0.3); padding: 2px 10px; border-radius: 10px;}
         
         .action-controls { display: flex; gap: 10px; margin-top: 15px; z-index: 20; justify-content: center; width: 100%; flex-wrap: wrap; }
         .action-btn { 
@@ -144,7 +144,7 @@
         .toast { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); 
             background: rgba(0,0,0,0.95); border: 2px solid var(--gold); padding: 20px 40px; 
-            border-radius: 20px; font-size: 22px; font-weight: bold; text-align: center; 
+            border-radius: 20px; font-size: 20px; font-weight: bold; text-align: center; 
             z-index: 1000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.9); width: 80%; 
             transition: transform 0.2s; opacity: 0;
         }
@@ -166,21 +166,37 @@
             background: #1a1a2e; border: 2px solid var(--gold); border-radius: 20px;
             width: 90%; max-width: 400px; padding: 20px; box-sizing: border-box;
             max-height: 80vh; overflow-y: auto; position: relative;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8); touch-action: pan-y; /* Разрешаем прокрутку */
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); touch-action: pan-y;
         }
-        
         .modal-content h2 { color: var(--gold); text-align: center; margin-top: 0; text-transform: uppercase; }
-        
         .combo-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .combo-item { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; border-left: 4px solid var(--gold); }
         .combo-title { color: var(--gold); font-weight: bold; font-size: 16px; margin-bottom: 4px; }
         .combo-desc { font-size: 13px; color: #ccc; }
-        
-        .close-modal {
-            position: absolute; top: 10px; right: 15px; background: none; border: none;
-            color: #fff; font-size: 28px; cursor: pointer; transition: 0.2s;
-        }
+        .close-modal { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; transition: 0.2s; }
         .close-modal:active { transform: scale(0.8); }
+
+        /* --- ДУРАК --- */
+        #durak .table { height: 420px; }
+        #durak .cards { min-height: 75px; }
+        #durak .card { width: 45px; height: 65px; font-size: 18px; }
+        
+        #durak-cards-in-play { 
+            display: flex; justify-content: center; align-items: flex-start; 
+            gap: 20px; min-height: 100px; margin-top: 10px; flex-wrap: wrap;
+        }
+        .pair-container { display: flex; position: relative; width: 50px; height: 75px; }
+        .pair-container .card { position: absolute; top: 0; left: 0; }
+        .pair-container .card:nth-child(2) { transform: translate(15px, 10px) rotate(10deg); box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
+
+        /* Инфо о козыре */
+        .trump-info {
+            position: absolute; right: 15px; bottom: 15px;
+            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 8px;
+            border: 1px solid var(--gold); font-size: 14px; color: var(--gold);
+            display: flex; align-items: center; gap: 5px;
+        }
+        .trump-info .card { width: 30px; height: 45px; font-size: 14px; margin-left: 5px; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -194,11 +210,12 @@
     <div id="game-container">
         <!-- ЛОББИ -->
         <div class="screen" id="lobby">
-            <h1 style="color: var(--gold); font-size: 36px; text-shadow: 0 0 20px rgba(255,215,0,0.6); margin-bottom: 30px;">Casino Royale</h1>
+            <h1 style="color: var(--gold); font-size: 32px; text-shadow: 0 0 20px rgba(255,215,0,0.6); margin-bottom: 20px;">Casino Royale</h1>
             <div class="menu-btns">
                 <button class="menu-btn" onclick="showGame('slots')">🎰 Слоты</button>
                 <button class="menu-btn" onclick="showGame('blackjack')">🃏 Блэкджек</button>
                 <button class="menu-btn" onclick="showGame('poker')">♠️ Покер</button>
+                <button class="menu-btn" style="border-color: #ff4444; color: #ff4444;" onclick="showGame('durak')">🛡️ Дурак</button>
                 <button class="info-btn" onclick="openCombos()">📖 Комбинации</button>
             </div>
         </div>
@@ -283,6 +300,42 @@
                 <button class="action-btn" id="btn-poker-deal" onclick="startPoker()">Раздать</button>
             </div>
         </div>
+
+        <!-- ДУРАК -->
+        <div class="screen hidden" id="durak">
+            <div class="table">
+                <div class="hand-container">
+                    <div class="score-label">Дилер: <span id="durak-dealer-count"></span></div>
+                    <div class="cards" id="durak-dealer-hand"></div>
+                </div>
+
+                <div id="durak-cards-in-play"></div>
+                
+                <div class="hand-container">
+                    <div class="score-label">Вы: <span id="durak-player-count"></span></div>
+                    <div class="cards" id="durak-player-hand"></div>
+                </div>
+                
+                <div class="trump-info" id="durak-trump-info">
+                    Козырь: <span id="durak-trump-suit"></span>
+                    <div id="durak-trump-card-container"></div>
+                </div>
+            </div>
+            
+            <div class="bet-controls" id="durak-bet-controls">
+                <button class="bet-btn" onclick="changeBet('durak', -50)">-</button>
+                <div class="bet-display">Ставка: <span id="bet-durak">100</span></div>
+                <button class="bet-btn" onclick="changeBet('durak', 50)">+</button>
+            </div>
+
+            <div class="action-controls" id="durak-action-controls" style="display: none;">
+                <button class="action-btn" onclick="durakAction('take')" id="btn-durak-take">Взять</button>
+                <button class="action-btn" onclick="durakAction('beat')" id="btn-durak-beat">Бито</button>
+            </div>
+            <div class="action-controls" id="durak-restart">
+                <button class="action-btn" id="btn-durak-deal" onclick="startDurak()">Играть</button>
+            </div>
+        </div>
     </div>
 
     <!-- Модальное окно с комбинациями -->
@@ -293,46 +346,16 @@
             <p style="text-align: center; font-size: 14px; color: #aaa;">Старшинство от высшего к низшему</p>
             
             <div class="combo-list">
-                <div class="combo-item">
-                    <div class="combo-title">1. Роял-Флеш (Royal Flush)</div>
-                    <div class="combo-desc">Туз, Король, Дама, Валет, 10 одной масти.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">2. Стрит-Флеш (Straight Flush)</div>
-                    <div class="combo-desc">5 последовательных карт одной масти.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">3. Каре (Four of a Kind)</div>
-                    <div class="combo-desc">4 карты одного достоинства.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">4. Фулл-Хаус (Full House)</div>
-                    <div class="combo-desc">Три карты одного достоинства + пара другого.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">5. Флеш (Flush)</div>
-                    <div class="combo-desc">5 карт одной масти в любом порядке.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">6. Стрит (Straight)</div>
-                    <div class="combo-desc">5 последовательных карт разных мастей.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">7. Сет (Three of a Kind)</div>
-                    <div class="combo-desc">3 карты одного достоинства.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">8. Две Пары (Two Pair)</div>
-                    <div class="combo-desc">Две карты одного достоинства + две другого.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">9. Пара (One Pair)</div>
-                    <div class="combo-desc">2 карты одного достоинства.</div>
-                </div>
-                <div class="combo-item">
-                    <div class="combo-title">10. Старшая карта (High Card)</div>
-                    <div class="combo-desc">Если нет комбинации, выигрывает старшая карта.</div>
-                </div>
+                <div class="combo-item"><div class="combo-title">1. Роял-Флеш</div><div class="combo-desc">Туз, Король, Дама, Валет, 10 одной масти.</div></div>
+                <div class="combo-item"><div class="combo-title">2. Стрит-Флеш</div><div class="combo-desc">5 последовательных карт одной масти.</div></div>
+                <div class="combo-item"><div class="combo-title">3. Каре</div><div class="combo-desc">4 карты одного достоинства.</div></div>
+                <div class="combo-item"><div class="combo-title">4. Фулл-Хаус</div><div class="combo-desc">Три карты одного достоинства + пара другого.</div></div>
+                <div class="combo-item"><div class="combo-title">5. Флеш</div><div class="combo-desc">5 карт одной масти.</div></div>
+                <div class="combo-item"><div class="combo-title">6. Стрит</div><div class="combo-desc">5 последовательных карт разных мастей.</div></div>
+                <div class="combo-item"><div class="combo-title">7. Сет</div><div class="combo-desc">3 карты одного достоинства.</div></div>
+                <div class="combo-item"><div class="combo-title">8. Две Пары</div><div class="combo-desc">Две карты одного достоинства + две другого.</div></div>
+                <div class="combo-item"><div class="combo-title">9. Пара</div><div class="combo-desc">2 карты одного достоинства.</div></div>
+                <div class="combo-item"><div class="combo-title">10. Старшая карта</div><div class="combo-desc">Если нет комбинации, выигрывает старшая карта.</div></div>
             </div>
             <div style="text-align: center; margin-top: 20px;">
                 <button class="action-btn" onclick="closeCombos()" style="max-width: 100%;">Понятно</button>
@@ -349,7 +372,7 @@
 
         // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
         let balance = 1000;
-        let bets = { slots: 100, blackjack: 100, poker: 100 };
+        let bets = { slots: 100, blackjack: 100, poker: 100, durak: 100 };
         let currentPokerBet = 0;
         const balanceEl = document.getElementById('global-balance');
         let dealerInterval = null;
@@ -375,15 +398,10 @@
         }
 
         // --- МОДАЛЬНОЕ ОКНО ---
-        function openCombos() {
-            sClick();
-            document.getElementById('combosModal').classList.add('active');
-        }
+        function openCombos() { sClick(); document.getElementById('combosModal').classList.add('active'); }
         function closeCombos(e) {
-            // Если передан объект события (клик по фону), проверяем, что клик именно по фону
             if (e && e.target !== e.currentTarget) return;
-            sClick();
-            document.getElementById('combosModal').classList.remove('active');
+            sClick(); document.getElementById('combosModal').classList.remove('active');
         }
 
         // --- ЗВУКИ ---
@@ -414,6 +432,7 @@
             if (screenId === 'blackjack') resetBlackjackUI();
             else if (screenId === 'slots') initSlotStrips();
             else if (screenId === 'poker') resetPokerUI();
+            else if (screenId === 'durak') resetDurakUI();
         }
 
         function showLobby() {
@@ -662,7 +681,7 @@
         }
 
         // ==========================================
-        // ПОКЕР (УПРОЩЕННЫЙ) - С ЧЕСТНЫМ СРАВНЕНИЕМ
+        // ПОКЕР (УПРОЩЕННЫЙ)
         // ==========================================
         let pDeck = [], pPlayerHand = [], pDealerHand = [], pCommunity = [], pGameActive = false;
         
@@ -767,7 +786,6 @@
             }
         }
 
-        // --- ЧЕСТНАЯ ОЦЕНКА ПОКЕРА ---
         function evaluateHand(cards) {
             let values = cards.map(c => getCardValue(c)).sort((a,b)=>b-a);
             let suits = cards.map(c => c.suit);
@@ -855,6 +873,331 @@
             document.getElementById('poker-restart').style.display = 'flex';
             document.getElementById('btn-poker-deal').disabled = false;
             document.getElementById('poker-bet-controls').style.display = 'flex';
+        }
+
+        // ==========================================
+        // ДУРАК (УПРОЩЕННЫЙ ПОДКИДНОЙ)
+        // ==========================================
+        let durakDeck = [], durakTrump = '♠', durakPlayerHand = [], durakDealerHand = [], durakTable = [];
+        let durakActive = false;
+        let durakTurn = 'player';
+        let durakPlayerTaking = false;
+        let durakDealerTaking = false;
+
+        function resetDurakUI() {
+            durakActive = false;
+            durakDeck = []; durakPlayerHand = []; durakDealerHand = []; durakTable = [];
+            document.getElementById('durak-player-hand').innerHTML = '';
+            document.getElementById('durak-dealer-hand').innerHTML = '';
+            document.getElementById('durak-cards-in-play').innerHTML = '';
+            document.getElementById('durak-player-count').innerText = '0 карт';
+            document.getElementById('durak-dealer-count').innerText = '0 карт';
+            document.getElementById('durak-trump-suit').innerText = '?';
+            document.getElementById('durak-trump-card-container').innerHTML = '';
+            document.getElementById('durak-action-controls').style.display = 'none';
+            document.getElementById('durak-restart').style.display = 'flex';
+            document.getElementById('durak-bet-controls').style.display = 'flex';
+            document.getElementById('btn-durak-deal').disabled = false;
+        }
+
+        function startDurak() {
+            const btn = document.getElementById('btn-durak-deal');
+            if (durakActive || btn.disabled) return;
+            const bet = bets.durak;
+            if (balance < bet) { showToast("Мало денег!", "#ff4444"); return; }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            sClick();
+            btn.disabled = true;
+            balance -= bet;
+            updateBalanceUI();
+            
+            durakDeck = createDeck();
+            const trumpCard = durakDeck[durakDeck.length - 1];
+            durakTrump = trumpCard.suit;
+            
+            durakPlayerHand = durakDeck.splice(0, 6);
+            durakDealerHand = durakDeck.splice(0, 6);
+            durakTable = [];
+            durakActive = true;
+            durakTurn = 'player';
+            durakPlayerTaking = false;
+            durakDealerTaking = false;
+
+            sortHand(durakPlayerHand);
+            
+            document.getElementById('durak-trump-suit').innerText = durakTrump;
+            const trumpEl = createCardElement(trumpCard, false);
+            trumpEl.style.transform = 'rotate(15deg)';
+            document.getElementById('durak-trump-card-container').innerHTML = '';
+            document.getElementById('durak-trump-card-container').appendChild(trumpEl);
+
+            renderDurak();
+
+            document.getElementById('durak-action-controls').style.display = 'flex';
+            document.getElementById('durak-restart').style.display = 'none';
+            document.getElementById('durak-bet-controls').style.display = 'none';
+        }
+
+        function sortHand(hand) {
+            hand.sort((a, b) => {
+                const valA = VALUES.indexOf(a.value);
+                const valB = VALUES.indexOf(b.value);
+                const isTrumpA = a.suit === durakTrump;
+                const isTrumpB = b.suit === durakTrump;
+                if (isTrumpA && !isTrumpB) return 1;
+                if (!isTrumpA && isTrumpB) return -1;
+                return valA - valB;
+            });
+        }
+
+        function renderDurak() {
+            const pEl = document.getElementById('durak-player-hand');
+            const dEl = document.getElementById('durak-dealer-hand');
+            const tEl = document.getElementById('durak-cards-in-play');
+
+            pEl.innerHTML = '';
+            durakPlayerHand.forEach((c, i) => {
+                const cardEl = createCardElement(c, false, 0);
+                if (c.suit === durakTrump) cardEl.style.boxShadow = '0 0 10px #ff4444';
+                cardEl.onclick = () => playerPlayCard(i);
+                pEl.appendChild(cardEl);
+            });
+
+            dEl.innerHTML = '';
+            durakDealerHand.forEach(() => {
+                dEl.appendChild(createCardElement({suit: '♠', value: 'A'}, true));
+            });
+
+            tEl.innerHTML = '';
+            durakTable.forEach(pair => {
+                const pDiv = document.createElement('div');
+                pDiv.className = 'pair-container';
+                
+                const attackEl = createCardElement(pair.attack, false, 0);
+                pDiv.appendChild(attackEl);
+
+                if (pair.defend) {
+                    const defendEl = createCardElement(pair.defend, false, 0);
+                    defendEl.style.position = 'absolute';
+                    defendEl.style.top = '15px';
+                    defendEl.style.left = '15px';
+                    defendEl.style.transform = 'rotate(10deg)';
+                    pDiv.appendChild(defendEl);
+                }
+                tEl.appendChild(pDiv);
+            });
+
+            document.getElementById('durak-player-count').innerText = `${durakPlayerHand.length} карт`;
+            document.getElementById('durak-dealer-count').innerText = `${durakDealerHand.length} карт`;
+            if (durakDeck.length > 0) {
+                document.getElementById('durak-deck-info').innerText = `Козырь: ${durakTrump} (В колоде: ${durakDeck.length})`;
+            } else {
+                document.getElementById('durak-deck-info').innerText = `Козырь: ${durakTrump} (Колода пуста)`;
+            }
+
+            updateDurakControls();
+        }
+
+        function updateDurakControls() {
+            const btnTake = document.getElementById('btn-durak-take');
+            const btnBeat = document.getElementById('btn-durak-beat');
+            
+            if (durakTurn === 'player') {
+                btnTake.disabled = durakTable.length === 0;
+                btnBeat.disabled = durakTable.length === 0;
+                if(durakTable.length > 0 && durakTable.every(p => p.defend)) {
+                    btnBeat.innerText = "Бито";
+                    btnBeat.disabled = false;
+                } else {
+                    btnBeat.innerText = "Отбиться";
+                    btnBeat.disabled = true; // Пока не отбиты все карты, кнопка не работает
+                }
+            } else {
+                btnTake.disabled = true;
+                btnBeat.disabled = true;
+            }
+        }
+
+        function playerPlayCard(index) {
+            if (!durakActive || durakTurn !== 'player') return;
+            
+            const card = durakPlayerHand[index];
+            
+            if (durakTable.length === 0) {
+                // Атака
+                sCard();
+                durakTable.push({ attack: card, defend: null });
+                durakPlayerHand.splice(index, 1);
+                renderDurak();
+                setTimeout(dealerTurn, 800);
+            } else {
+                // Отбивание
+                const unbeatened = durakTable.find(p => !p.defend);
+                if (unbeatened) {
+                    if (canBeat(card, unbeatened.attack)) {
+                        sCard();
+                        unbeatened.defend = card;
+                        durakPlayerHand.splice(index, 1);
+                        renderDurak();
+                        setTimeout(dealerTurn, 800);
+                    } else {
+                        showToast("Эта карта не бьет!", "#ff4444", 1500);
+                    }
+                }
+            }
+        }
+
+        function canBeat(defendCard, attackCard) {
+            const attackVal = VALUES.indexOf(attackCard.value);
+            const defendVal = VALUES.indexOf(defendCard.value);
+            
+            if (defendCard.suit === attackCard.suit) {
+                return defendVal > attackVal;
+            }
+            if (defendCard.suit === durakTrump && attackCard.suit !== durakTrump) {
+                return true;
+            }
+            return false;
+        }
+
+        function durakAction(action) {
+            if (!durakActive || durakTurn !== 'player') return;
+            sClick();
+
+            if (action === 'take') {
+                durakPlayerTaking = true;
+                durakTable.forEach(pair => {
+                    durakPlayerHand.push(pair.attack);
+                    if (pair.defend) durakPlayerHand.push(pair.defend);
+                });
+                durakTable = [];
+                sortHand(durakPlayerHand);
+                renderDurak();
+                setTimeout(endRound, 500);
+            } else if (action === 'beat') {
+                if (durakTable.every(p => p.defend)) {
+                    durakTable = [];
+                    renderDurak();
+                    setTimeout(endRound, 500);
+                }
+            }
+        }
+
+        function dealerTurn() {
+            if (!durakActive || durakTurn !== 'dealer') return;
+            
+            const unbeatened = durakTable.find(p => !p.defend);
+            
+            if (unbeatened) {
+                // Ищем карту для отбивания
+                let cardToPlayIdx = -1;
+                for (let i = 0; i < durakDealerHand.length; i++) {
+                    if (canBeat(durakDealerHand[i], unbeatened.attack)) {
+                        cardToPlayIdx = i;
+                        break;
+                    }
+                }
+
+                if (cardToPlayIdx !== -1) {
+                    sCard();
+                    unbeatened.defend = durakDealerHand.splice(cardToPlayIdx, 1)[0];
+                    renderDurak();
+                    setTimeout(dealerTurn, 800);
+                } else {
+                    // Дилер забирает
+                    showToast("Дилер забирает!", "#ff4444");
+                    durakDealerTaking = true;
+                    durakTable.forEach(pair => {
+                        durakDealerHand.push(pair.attack);
+                        if (pair.defend) durakDealerHand.push(pair.defend);
+                    });
+                    durakTable = [];
+                    sortHand(durakDealerHand);
+                    renderDurak();
+                    setTimeout(endRound, 1000);
+                }
+            } else {
+                // Дилер атакует, если у него есть карты того же ранга
+                const ranksOnTable = durakTable.map(p => p.attack.value);
+                let cardToAttackIdx = -1;
+                
+                // Если стол пуст, ход дилера означает, что он должен начать атаку
+                if (durakTable.length === 0) {
+                    if (durakDealerHand.length > 0) {
+                        cardToAttackIdx = 0; // Берем первую попавшуюся
+                    }
+                } else {
+                    for (let i = 0; i < durakDealerHand.length; i++) {
+                        if (ranksOnTable.includes(durakDealerHand[i].value)) {
+                            cardToAttackIdx = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (cardToAttackIdx !== -1) {
+                    sCard();
+                    durakTable.push({ attack: durakDealerHand.splice(cardToAttackIdx, 1)[0], defend: null });
+                    renderDurak();
+                    setTimeout(dealerTurn, 800);
+                } else {
+                    // Дилер больше не может атаковать
+                    durakTable = [];
+                    renderDurak();
+                    setTimeout(endRound, 500);
+                }
+            }
+        }
+
+        function endRound() {
+            if (!durakActive) return;
+
+            while (durakPlayerHand.length < 6 && durakDeck.length > 0) durakPlayerHand.push(durakDeck.pop());
+            while (durakDealerHand.length < 6 && durakDeck.length > 0) durakDealerHand.push(durakDeck.pop());
+            
+            sortHand(durakPlayerHand);
+            sortHand(durakDealerHand);
+            renderDurak();
+
+            if (durakPlayerHand.length === 0 && durakDeck.length === 0) {
+                durakActive = false;
+                balance += bets.durak * 2;
+                updateBalanceUI();
+                showToast("Вы выиграли! Дилер - дурак.", "#4ade80", 3000);
+                sWin();
+                document.getElementById('durak-action-controls').style.display = 'none';
+                document.getElementById('durak-restart').style.display = 'flex';
+                document.getElementById('btn-durak-deal').disabled = false;
+                document.getElementById('durak-bet-controls').style.display = 'flex';
+                return;
+            }
+            if (durakDealerHand.length === 0 && durakDeck.length === 0) {
+                durakActive = false;
+                showToast("Вы проиграли! Вы - дурак.", "#ff4444", 3000);
+                sLose();
+                document.getElementById('durak-action-controls').style.display = 'none';
+                document.getElementById('durak-restart').style.display = 'flex';
+                document.getElementById('btn-durak-deal').disabled = false;
+                document.getElementById('durak-bet-controls').style.display = 'flex';
+                return;
+            }
+
+            // Смена хода
+            if (durakPlayerTaking) {
+                durakTurn = 'dealer'; // Если игрок взял, дилер атакует
+            } else {
+                durakTurn = 'player'; // Игрок отбился, он снова атакует
+            }
+
+            durakPlayerTaking = false;
+            durakDealerTaking = false;
+            updateDurakControls();
+
+            // Если ход перешел дилеру, запускаем его атаку
+            if (durakTurn === 'dealer') {
+                setTimeout(dealerTurn, 500);
+            }
         }
 
         // Инициализация
