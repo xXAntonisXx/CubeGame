@@ -15,7 +15,7 @@
             background-color: #f4f1ea; 
             font-family: sans-serif;
             user-select: none;
-            touch-action: none; /* Отключаем скролл и зум браузера */
+            touch-action: none;
         }
         #game-container {
             width: 100vw;
@@ -159,6 +159,14 @@
 
             scene.add(cube);
 
+            generateLevel();
+
+            bindEvents();
+            onWindowResize(); 
+            animate();
+        }
+
+        function generateLevel() {
             const offset = CUBE_SIZE / 2 + 0.01; 
             const halfGrid = (GRID_SIZE - 1) / 2;
 
@@ -167,63 +175,85 @@
                     const posX = (i - halfGrid) * CELL_SIZE;
                     const posY = (j - halfGrid) * CELL_SIZE;
                     
-                    if (Math.random() > 0.4) createArrow(posX, offset, posY, 'top', Math.floor(Math.random() * 4));
-                    if (Math.random() > 0.4) createArrow(posX, posY, offset, 'front', Math.floor(Math.random() * 4));
-                    if (Math.random() > 0.4) createArrow(offset, posY, posX, 'right', Math.floor(Math.random() * 4));
+                    if (Math.random() > 0.3) {
+                        let dirs = [];
+                        if (i > 0) dirs.push(3); 
+                        if (i < GRID_SIZE - 1) dirs.push(1); 
+                        if (j > 0) dirs.push(2); 
+                        if (j < GRID_SIZE - 1) dirs.push(0); 
+                        if (dirs.length > 0) createArrow(posX, offset, posY, 'top', dirs[Math.floor(Math.random() * dirs.length)], i, j);
+                    }
+                    
+                    if (Math.random() > 0.3) {
+                        let dirs = [];
+                        if (i > 0) dirs.push(3); 
+                        if (i < GRID_SIZE - 1) dirs.push(1); 
+                        if (j > 0) dirs.push(2); 
+                        if (j < GRID_SIZE - 1) dirs.push(0); 
+                        if (dirs.length > 0) createArrow(posX, posY, offset, 'front', dirs[Math.floor(Math.random() * dirs.length)], i, j);
+                    }
+                    
+                    if (Math.random() > 0.3) {
+                        let dirs = [];
+                        if (j > 0) dirs.push(2); 
+                        if (j < GRID_SIZE - 1) dirs.push(0); 
+                        if (i > 0) dirs.push(1); 
+                        if (i < GRID_SIZE - 1) dirs.push(3); 
+                        if (dirs.length > 0) createArrow(offset, posY, posX, 'right', dirs[Math.floor(Math.random() * dirs.length)], i, j);
+                    }
                 }
             }
-
-            bindEvents();
-            onWindowResize(); 
-            animate();
         }
 
-        function createArrow(x, y, z, face, dirIndex) {
+        // Теперь передаем индексы сетки i, j
+        function createArrow(x, y, z, face, dirIndex, gridI, gridJ) {
             const geo = new THREE.PlaneGeometry(CELL_SIZE * 0.8, CELL_SIZE * 0.8);
             const mat = new THREE.MeshBasicMaterial({ 
                 map: arrowTexture, 
                 transparent: true,
-                depthTest: false // Отключаем тест глубины, чтобы стрелки не пропадали внутри куба
+                depthTest: false 
             });
             const mesh = new THREE.Mesh(geo, mat);
 
             mesh.position.set(x, y, z);
             
-            // Вектор направления в локальных координатах грани
-            let localDir = new THREE.Vector3();
+            let globalDir = new THREE.Vector3();
             let rotZ = 0;
             let baseRotX = 0;
             let baseRotY = 0;
 
+            // Для стрелок направления трактуем так:
+            // 0 - Вверх (по сетке), 1 - Вправо, 2 - Вниз, 3 - Влево
             if (face === 'top') {
                 baseRotX = -Math.PI / 2;
-                // В локальных координатах плоскости: X - вправо, Y - вверх
-                if (dirIndex === 0) { localDir.set(0, 1, 0); rotZ = 0; }           // Вверх
-                if (dirIndex === 1) { localDir.set(1, 0, 0); rotZ = -Math.PI/2; }  // Вправо
-                if (dirIndex === 2) { localDir.set(0, -1, 0); rotZ = Math.PI; }    // Вниз
-                if (dirIndex === 3) { localDir.set(-1, 0, 0); rotZ = Math.PI/2; }  // Влево
+                if (dirIndex === 0) { globalDir.set(0, 0, -1); rotZ = 0; }
+                if (dirIndex === 1) { globalDir.set(1, 0, 0); rotZ = -Math.PI/2; }
+                if (dirIndex === 2) { globalDir.set(0, 0, 1); rotZ = Math.PI; }
+                if (dirIndex === 3) { globalDir.set(-1, 0, 0); rotZ = Math.PI/2; }
             } else if (face === 'front') {
                 baseRotX = 0;
-                if (dirIndex === 0) { localDir.set(0, 1, 0); rotZ = 0; }
-                if (dirIndex === 1) { localDir.set(1, 0, 0); rotZ = -Math.PI/2; }
-                if (dirIndex === 2) { localDir.set(0, -1, 0); rotZ = Math.PI; }
-                if (dirIndex === 3) { localDir.set(-1, 0, 0); rotZ = Math.PI/2; }
+                if (dirIndex === 0) { globalDir.set(0, 1, 0); rotZ = 0; }
+                if (dirIndex === 1) { globalDir.set(1, 0, 0); rotZ = -Math.PI/2; }
+                if (dirIndex === 2) { globalDir.set(0, -1, 0); rotZ = Math.PI; }
+                if (dirIndex === 3) { globalDir.set(-1, 0, 0); rotZ = Math.PI/2; }
             } else if (face === 'right') {
                 baseRotY = Math.PI / 2;
-                // ВАЖНО: Из-за поворота Y, локальная ось X плоскости смотрит в Z куба, а локальная Y остаётся Y.
-                if (dirIndex === 0) { localDir.set(0, 1, 0); rotZ = 0; }           // Вверх
-                if (dirIndex === 1) { localDir.set(1, 0, 0); rotZ = -Math.PI/2; }  // Вправо (вперед по Z)
-                if (dirIndex === 2) { localDir.set(0, -1, 0); rotZ = Math.PI; }    // Вниз
-                if (dirIndex === 3) { localDir.set(-1, 0, 0); rotZ = Math.PI/2; }  // Влево (назад по Z)
+                if (dirIndex === 0) { globalDir.set(0, 1, 0); rotZ = 0; }
+                if (dirIndex === 1) { globalDir.set(0, 0, 1); rotZ = -Math.PI/2; }
+                if (dirIndex === 2) { globalDir.set(0, -1, 0); rotZ = Math.PI; }
+                if (dirIndex === 3) { globalDir.set(0, 0, -1); rotZ = Math.PI/2; }
             }
 
             mesh.rotation.set(baseRotX, baseRotY, rotZ);
             
             mesh.userData = { 
                 isAnimating: false, 
-                localDir: localDir, 
+                globalDir: globalDir, 
+                dirIndex: dirIndex,
                 face: face,
-                startPos: new THREE.Vector3(x, y, z)
+                startPos: new THREE.Vector3(x, y, z),
+                gridI: gridI, // Сетка X (столбец)
+                gridJ: gridJ  // Сетка Y (строка)
             };
 
             cube.add(mesh); 
@@ -260,62 +290,81 @@
         function launchArrow(arrow) {
             arrow.userData.isAnimating = true;
             const startPos = arrow.userData.startPos.clone();
-            const localDir = arrow.userData.localDir.clone();
+            const dir = arrow.userData.globalDir.clone();
             const face = arrow.userData.face;
+            const myI = arrow.userData.gridI;
+            const myJ = arrow.userData.gridJ;
+            const myDirIndex = arrow.userData.dirIndex;
 
-            // 1. Сначала просчитываем, есть ли препятствие на пути
-            let hitObstacle = false;
-            let checkPos = startPos.clone();
-            const step = 0.05; // Маленький шаг для точности
-            let dist = 0;
-            const limit = CUBE_SIZE / 2;
+            let closestObstacleDist = Infinity;
+            let obstacleArrow = null;
 
-            while (dist < CUBE_SIZE) {
-                checkPos.add(localDir.clone().multiplyScalar(step));
-                dist += step;
+            // 1. Ищем ближайшее препятствие, используя ТОЧНЫЕ координаты сетки
+            for (let k = 0; k < arrows.length; k++) {
+                const other = arrows[k];
+                if (other === arrow || other.userData.face !== face) continue;
 
-                // Проверяем, не вылетели ли мы за пределы куба
-                let outOfBounds = false;
-                if (face === 'top') {
-                    if (checkPos.x > limit || checkPos.x < -limit || checkPos.z > limit || checkPos.z < -limit) outOfBounds = true;
-                } else if (face === 'front') {
-                    if (checkPos.x > limit || checkPos.x < -limit || checkPos.y > limit || checkPos.y < -limit) outOfBounds = true;
-                } else if (face === 'right') {
-                    if (checkPos.z > limit || checkPos.z < -limit || checkPos.y > limit || checkPos.y < -limit) outOfBounds = true;
+                const otherI = other.userData.gridI;
+                const otherJ = other.userData.gridJ;
+
+                let onSameLine = false;
+                let distInGrid = 0;
+
+                // Проверяем, смотрим ли мы в сторону другой стрелки и лежит ли она на одной линии
+                if (myDirIndex === 0) { // Вверх
+                    onSameLine = (myI === otherI && otherJ > myJ);
+                    distInGrid = otherJ - myJ;
+                } else if (myDirIndex === 1) { // Вправо
+                    onSameLine = (myJ === otherJ && otherI > myI);
+                    distInGrid = otherI - myI;
+                } else if (myDirIndex === 2) { // Вниз
+                    onSameLine = (myI === otherI && otherJ < myJ);
+                    distInGrid = myJ - otherJ;
+                } else if (myDirIndex === 3) { // Влево
+                    onSameLine = (myJ === otherJ && otherI < myI);
+                    distInGrid = myI - otherI;
                 }
 
-                if (outOfBounds) break;
-
-                // Проверяем столкновения с другими стрелками
-                for (let i = 0; i < arrows.length; i++) {
-                    const other = arrows[i];
-                    if (other === arrow) continue; 
-                    
-                    if (other.userData.face === face) {
-                        if (checkPos.distanceTo(other.position) < CELL_SIZE * 0.7) {
-                            hitObstacle = true;
-                            break;
-                        }
+                if (onSameLine) {
+                    const actualDist = distInGrid * CELL_SIZE;
+                    if (actualDist < closestObstacleDist) {
+                        closestObstacleDist = actualDist;
+                        obstacleArrow = other;
                     }
                 }
-                if (hitObstacle) break;
             }
 
-            // 2. Запускаем анимацию в зависимости от результата
+            // 2. Вычисляем дистанцию до края куба
+            const limit = CUBE_SIZE / 2;
+            let distToEdge = Infinity;
+            const epsilon = 0.001;
+
+            if (dir.x > epsilon) distToEdge = Math.min(distToEdge, (limit - startPos.x) / dir.x);
+            else if (dir.x < -epsilon) distToEdge = Math.min(distToEdge, (-limit - startPos.x) / dir.x);
+            
+            if (dir.y > epsilon) distToEdge = Math.min(distToEdge, (limit - startPos.y) / dir.y);
+            else if (dir.y < -epsilon) distToEdge = Math.min(distToEdge, (-limit - startPos.y) / dir.y);
+            
+            if (dir.z > epsilon) distToEdge = Math.min(distToEdge, (limit - startPos.z) / dir.z);
+            else if (dir.z < -epsilon) distToEdge = Math.min(distToEdge, (-limit - startPos.z) / dir.z);
+
+            // 3. Проверяем столкновение
+            const hitObstacle = obstacleArrow !== null && closestObstacleDist < distToEdge;
+
             if (hitObstacle) {
-                // Отскок назад
+                // Отскок
                 const animStart = performance.now();
-                const bounceDist = CELL_SIZE * 0.4;
+                const bounceDist = Math.min(CELL_SIZE * 0.4, closestObstacleDist * 0.8);
 
                 function animateReturn() {
                     const t = (performance.now() - animStart) / 150; 
                     if (t < 1) {
-                        arrow.position.copy(startPos).add(localDir.clone().multiplyScalar(bounceDist * t));
+                        arrow.position.copy(startPos).add(dir.clone().multiplyScalar(bounceDist * t));
                         requestAnimationFrame(animateReturn);
                     } else {
                         const tBack = (performance.now() - animStart - 150) / 150; 
                         if (tBack < 1) {
-                            arrow.position.copy(startPos).add(localDir.clone().multiplyScalar(bounceDist * (1 - tBack)));
+                            arrow.position.copy(startPos).add(dir.clone().multiplyScalar(bounceDist * (1 - tBack)));
                             requestAnimationFrame(animateReturn);
                         } else {
                             arrow.position.copy(startPos);
@@ -325,21 +374,24 @@
                 }
                 animateReturn();
             } else {
-                // Успешный вылет (исчезновение)
+                // Успешный вылет
                 const animStart = performance.now();
                 function animateFly() {
                     const t = (performance.now() - animStart) / 200; 
                     if (t < 1) {
-                        arrow.position.copy(startPos).add(localDir.clone().multiplyScalar(t * CUBE_SIZE));
+                        const flyDist = Math.min(distToEdge, CUBE_SIZE * 1.5);
+                        arrow.position.copy(startPos).add(dir.clone().multiplyScalar(t * flyDist));
                         arrow.material.opacity = 1 - t;
                         requestAnimationFrame(animateFly);
                     } else {
-                        cube.remove(arrow);
                         const index = arrows.indexOf(arrow);
-                        if (index > -1) arrows.splice(index, 1);
-                        score += 10;
-                        scoreElement.innerText = `Очки: ${score}`;
-                        checkWin();
+                        if (index > -1) {
+                            cube.remove(arrow);
+                            arrows.splice(index, 1);
+                            score += 10;
+                            scoreElement.innerText = `Очки: ${score}`;
+                            checkWin();
+                        }
                     }
                 }
                 animateFly();
