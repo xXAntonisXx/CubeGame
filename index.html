@@ -208,7 +208,6 @@
                 #111 257.14deg 274.28deg, #d32f2f 274.28deg 291.42deg, #111 291.42deg 308.57deg, 
                 #d32f2f 308.57deg 325.71deg, #111 325.71deg 342.85deg, #4ade80 342.85deg 360deg
             );
-            /* Поворачиваем на -90, чтобы 0-й сектор (Красный) оказался под стрелкой сверху */
             transform: rotate(-90deg); 
         }
         .wheel-pointer {
@@ -774,18 +773,16 @@
             pCommunity = [];
             pGameActive = true;
 
-            // Очищаем контейнеры перед первой раздачей
             document.getElementById('poker-player-hand').innerHTML = '';
             document.getElementById('poker-dealer-hand').innerHTML = '';
             document.getElementById('poker-community').innerHTML = '';
             
-            renderPokerInitial(); // Специальная отрисовка для старта
+            renderPokerInitial();
 
             document.getElementById('poker-action-controls').style.display = 'flex';
             document.getElementById('poker-restart').style.display = 'none';
             document.getElementById('poker-bet-controls').style.display = 'none';
             
-            // Сброс кнопки рейза
             document.getElementById('btn-poker-raise').innerText = `Рейз`;
         }
 
@@ -797,7 +794,6 @@
             pDealerHand.forEach((c, i) => dEl.appendChild(createCardElement(c, true, i)));
         }
 
-        // Функция для добавления карты на стол без перерисовки всего
         function addCommunityCards(num) {
             const cEl = document.getElementById('poker-community');
             for(let i=0; i<num; i++) {
@@ -819,15 +815,15 @@
                 endPoker();
             } else if (action === 'call') {
                 if (pCommunity.length === 0) {
-                    addCommunityCards(3); // Флоп
+                    addCommunityCards(3);
                     sCard();
                 } 
                 else if (pCommunity.length === 3) {
-                    addCommunityCards(1); // Терн
+                    addCommunityCards(1);
                     sCard();
                 } 
                 else if (pCommunity.length === 4) {
-                    addCommunityCards(1); // Ривер
+                    addCommunityCards(1);
                     sCard();
                 } 
                 else {
@@ -853,8 +849,6 @@
                 currentPokerBet += raiseAmount; 
                 showToast(`Вы подняли на ${raiseAmount}! Текущая ставка: ${currentPokerBet}`, "#ffd700");
                 
-                // Игра НЕ заканчивается. Вы можете нажать "Колл" или снова "Рейз".
-                // Кнопка Рейз обновится, чтобы отображать новую сумму
                 document.getElementById('btn-poker-raise').innerText = `Рейз (+${currentPokerBet})`;
             }
         }
@@ -903,7 +897,7 @@
         function determinePokerWinner() {
             pGameActive = false;
             
-            renderPoker(); // Открываем карты дилера
+            renderPoker();
 
             const playerTotal = [...pPlayerHand, ...pCommunity];
             const dealerTotal = [...pDealerHand, ...pCommunity];
@@ -948,7 +942,7 @@
         }
 
         // ==========================================
-        // КОСТИ
+        // КОСТИ (ИСПРАВЛЕНЫ ПРАВИЛА)
         // ==========================================
         let diceRolling = false;
 
@@ -1004,16 +998,20 @@
                     sumEl.innerText = sum;
                     
                     let win = 0;
-                    if (sum === 7 || sum === 11) {
+                    // НОВЫЕ ПРАВИЛА
+                    if (sum >= 1 && sum <= 4) {
+                        // Проигрыш
+                        showToast(`Проигрыш! Выпало ${sum}`, "#ff4444");
+                        sLose();
+                    } else if (sum >= 5 && sum <= 8) {
+                        // Ничья (возврат)
+                        win = bet;
+                        showToast(`Ничья (${sum}). Ставка возвращена.`, "#ffd700");
+                    } else if (sum >= 9 && sum <= 12) {
+                        // Выигрыш
                         win = bet * 2;
                         showToast(`Победа! Выпало ${sum}`, "#4ade80");
                         sWin();
-                    } else if (sum === 2 || sum === 3 || sum === 12) {
-                        showToast(`Проигрыш! Выпало ${sum}`, "#ff4444");
-                        sLose();
-                    } else {
-                        win = bet; // Возврат ставки
-                        showToast(`Ничья (${sum}). Ставка возвращена.`, "#ffd700");
                     }
                     
                     if (win > 0) { balance += win; updateBalanceUI(); }
@@ -1026,20 +1024,16 @@
         }
 
         // ==========================================
-        // КОЛЕСО (ИСПРАВЛЕНА МАТЕМАТИКА И СДВИГ)
+        // КОЛЕСО
         // ==========================================
         let wheelSpinning = false;
         let selectedWheelBet = 'red';
-        
-        // Массив из 21 сектора (0 - красное, 1 - черное, 2 - зеленое)
         const wheelColors = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2];
 
         function resetWheelUI() {
             wheelSpinning = false;
             document.getElementById('btn-wheel-spin').disabled = false;
             document.getElementById('wheel-bet-controls').style.display = 'flex';
-            
-            // Сбрасываем трансформацию на базовый сдвиг (-90)
             document.getElementById('wheel-spin').style.transform = 'rotate(-90deg)';
             selectWheelBet('red');
         }
@@ -1066,13 +1060,7 @@
             document.getElementById('wheel-bet-controls').style.display = 'none';
 
             const wheelEl = document.getElementById('wheel-spin');
-            
-            // Выбираем случайный выигрышный сектор от 0 до 20
             const winningSector = Math.floor(Math.random() * 21); 
-            
-            // В CSS мы уже повернули колесо на -90.
-            // Теперь нам нужно повернуть его на -(winningSector * 17.14) - 8.57, чтобы центр сектора встал под стрелку.
-            // И добавить 5 полных оборотов (1800) для анимации.
             const sectorAngle = 360 / 21;
             const targetAngle = -90 - (winningSector * sectorAngle) - (sectorAngle / 2) - 1800;
             
@@ -1083,7 +1071,6 @@
             setTimeout(() => {
                 clearInterval(spinSoundInterval);
                 
-                // Определяем результат по индексу выигрышного сектора
                 const resultColorCode = wheelColors[winningSector];
                 let resultColorStr = resultColorCode === 0 ? 'red' : resultColorCode === 1 ? 'black' : 'green';
 
