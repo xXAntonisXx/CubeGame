@@ -177,26 +177,29 @@
         .close-modal:active { transform: scale(0.8); }
 
         /* --- ДУРАК --- */
-        #durak .table { height: 420px; }
+        #durak .table { height: 450px; justify-content: flex-start; gap: 10px; }
         #durak .cards { min-height: 75px; }
         #durak .card { width: 45px; height: 65px; font-size: 18px; }
         
         #durak-cards-in-play { 
             display: flex; justify-content: center; align-items: flex-start; 
-            gap: 20px; min-height: 100px; margin-top: 10px; flex-wrap: wrap;
+            gap: 15px; min-height: 90px; margin-top: 5px; flex-wrap: wrap;
+            background: rgba(0,0,0,0.1); border-radius: 10px; padding: 10px;
+            width: 90%; border: 1px dashed rgba(255,255,255,0.2);
+            position: relative;
         }
-        .pair-container { display: flex; position: relative; width: 50px; height: 75px; }
+        .pair-container { display: flex; position: relative; width: 45px; height: 65px; }
         .pair-container .card { position: absolute; top: 0; left: 0; }
-        .pair-container .card:nth-child(2) { transform: translate(15px, 10px) rotate(10deg); box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
+        .pair-container .card:nth-child(2) { transform: translate(12px, 8px) rotate(10deg); box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
 
-        /* Инфо о козыре */
+        /* Инфо о козыре - ВСТРОЕН В РУКУ ИГРОКА */
         .trump-info {
-            position: absolute; right: 15px; bottom: 15px;
-            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 8px;
-            border: 1px solid var(--gold); font-size: 14px; color: var(--gold);
-            display: flex; align-items: center; gap: 5px;
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 8px;
+            border: 1px solid var(--gold); font-size: 10px; color: var(--gold);
+            margin-left: 10px;
         }
-        .trump-info .card { width: 30px; height: 45px; font-size: 14px; margin-left: 5px; }
+        .trump-info .card { width: 20px; height: 30px; font-size: 12px; box-shadow: none; margin-top: 2px; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -304,21 +307,23 @@
         <!-- ДУРАК -->
         <div class="screen hidden" id="durak">
             <div class="table">
-                <div class="hand-container">
+                <div class="hand-container" style="margin-top: 5px;">
                     <div class="score-label">Дилер: <span id="durak-dealer-count"></span></div>
                     <div class="cards" id="durak-dealer-hand"></div>
                 </div>
 
                 <div id="durak-cards-in-play"></div>
                 
+                <!-- Козырь встроен прямо в блок с рукой игрока -->
                 <div class="hand-container">
                     <div class="score-label">Вы: <span id="durak-player-count"></span></div>
-                    <div class="cards" id="durak-player-hand"></div>
-                </div>
-                
-                <div class="trump-info" id="durak-trump-info">
-                    Козырь: <span id="durak-trump-suit"></span>
-                    <div id="durak-trump-card-container"></div>
+                    <div style="display: flex; align-items: flex-end; width: 100%; justify-content: center;">
+                        <div class="cards" id="durak-player-hand" style="flex: 1;"></div>
+                        <div class="trump-info">
+                            <span>Козырь</span>
+                            <div id="durak-trump-card-container"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -529,9 +534,12 @@
             return d;
         }
 
+        // ИСПРАВЛЕННЫЙ getCardValue: A = 14
         function getCardValue(card) {
-            if (['J', 'Q', 'K'].includes(card.value)) return 10;
-            if (card.value === 'A') return 11;
+            if (card.value === 'A') return 14;
+            if (card.value === 'K') return 13;
+            if (card.value === 'Q') return 12;
+            if (card.value === 'J') return 11;
             return parseInt(card.value);
         }
 
@@ -561,8 +569,9 @@
         function calculateBJScore(hand) {
             let score = 0, aces = 0;
             for (let card of hand) {
-                score += getCardValue(card);
-                if (card.value === 'A') aces++;
+                if (card.value === 'A') { score += 11; aces++; }
+                else if (['J', 'Q', 'K'].includes(card.value)) score += 10;
+                else score += parseInt(card.value);
             }
             while (score > 21 && aces > 0) { score -= 10; aces--; }
             return score;
@@ -572,7 +581,10 @@
             if (dealerInterval) clearInterval(dealerInterval);
             bjGameActive = false;
             bjPlayerHand = []; bjDealerHand = [];
-            renderBlackjack();
+            
+            document.getElementById('bj-player-hand').innerHTML = '';
+            document.getElementById('bj-dealer-hand').innerHTML = '';
+            
             document.getElementById('bj-controls').style.display = 'none';
             document.getElementById('bj-restart').style.display = 'flex';
             document.getElementById('bj-bet-controls').style.display = 'flex';
@@ -688,9 +700,11 @@
         function resetPokerUI() {
             pGameActive = false;
             pPlayerHand = []; pDealerHand = []; pCommunity = [];
+            
             document.getElementById('poker-player-hand').innerHTML = '';
             document.getElementById('poker-dealer-hand').innerHTML = '';
             document.getElementById('poker-community').innerHTML = '';
+            
             document.getElementById('poker-player-score').innerText = '';
             document.getElementById('poker-dealer-score').innerText = '';
             document.getElementById('poker-action-controls').style.display = 'none';
@@ -770,20 +784,17 @@
             const dEl = document.getElementById('poker-dealer-hand');
             const cEl = document.getElementById('poker-community');
             
-            if (pEl.children.length !== pPlayerHand.length) {
-                pEl.innerHTML = '';
-                pPlayerHand.forEach((c, i) => pEl.appendChild(createCardElement(c, false, i)));
-            }
+            pEl.innerHTML = '';
+            dEl.innerHTML = '';
+            cEl.innerHTML = '';
             
-            if (dEl.children.length !== pDealerHand.length) {
-                dEl.innerHTML = '';
-                pDealerHand.forEach((c, i) => dEl.appendChild(createCardElement(c, true, i)));
-            }
+            pPlayerHand.forEach((c, i) => pEl.appendChild(createCardElement(c, false, i)));
             
-            if (cEl.children.length !== pCommunity.length) {
-                cEl.innerHTML = '';
-                pCommunity.forEach((c, i) => cEl.appendChild(createCardElement(c, false, i)));
-            }
+            pDealerHand.forEach((c, i) => {
+                dEl.appendChild(createCardElement(c, pGameActive, i));
+            });
+            
+            pCommunity.forEach((c, i) => cEl.appendChild(createCardElement(c, false, i)));
         }
 
         function evaluateHand(cards) {
@@ -791,10 +802,13 @@
             let suits = cards.map(c => c.suit);
             let isFlush = suits.every(s => s === suits[0]);
 
+            // Проверка стрита (с учетом A как 1 или 14)
             let isStraight = false;
             let uniqueVals = [...new Set(values)];
             if (uniqueVals.length === 5) {
+                // Обычный стрит
                 if (uniqueVals[0] - uniqueVals[4] === 4) isStraight = true;
+                // Стрит с Тузом внизу (A,2,3,4,5)
                 if (uniqueVals[0] === 14 && uniqueVals[1] === 5 && uniqueVals[4] === 2) isStraight = true;
             }
 
@@ -824,14 +838,7 @@
         function determinePokerWinner() {
             pGameActive = false;
             
-            const dEl = document.getElementById('poker-dealer-hand');
-            dEl.innerHTML = '';
-            pDealerHand.forEach((c, i) => {
-                const cardEl = createCardElement(c, false, i);
-                cardEl.classList.add('flipped');
-                setTimeout(() => cardEl.classList.remove('flipped'), 10);
-                dEl.appendChild(cardEl);
-            });
+            renderPoker();
 
             const playerTotal = [...pPlayerHand, ...pCommunity];
             const dealerTotal = [...pDealerHand, ...pCommunity];
@@ -887,9 +894,11 @@
         function resetDurakUI() {
             durakActive = false;
             durakDeck = []; durakPlayerHand = []; durakDealerHand = []; durakTable = [];
+            
             document.getElementById('durak-player-hand').innerHTML = '';
             document.getElementById('durak-dealer-hand').innerHTML = '';
             document.getElementById('durak-cards-in-play').innerHTML = '';
+            
             document.getElementById('durak-player-count').innerText = '0 карт';
             document.getElementById('durak-dealer-count').innerText = '0 карт';
             document.getElementById('durak-trump-suit').innerText = '?';
@@ -928,7 +937,6 @@
             
             document.getElementById('durak-trump-suit').innerText = durakTrump;
             const trumpEl = createCardElement(trumpCard, false);
-            trumpEl.style.transform = 'rotate(15deg)';
             document.getElementById('durak-trump-card-container').innerHTML = '';
             document.getElementById('durak-trump-card-container').appendChild(trumpEl);
 
@@ -990,11 +998,6 @@
 
             document.getElementById('durak-player-count').innerText = `${durakPlayerHand.length} карт`;
             document.getElementById('durak-dealer-count').innerText = `${durakDealerHand.length} карт`;
-            if (durakDeck.length > 0) {
-                document.getElementById('durak-deck-info').innerText = `Козырь: ${durakTrump} (В колоде: ${durakDeck.length})`;
-            } else {
-                document.getElementById('durak-deck-info').innerText = `Козырь: ${durakTrump} (Колода пуста)`;
-            }
 
             updateDurakControls();
         }
@@ -1011,7 +1014,7 @@
                     btnBeat.disabled = false;
                 } else {
                     btnBeat.innerText = "Отбиться";
-                    btnBeat.disabled = true; // Пока не отбиты все карты, кнопка не работает
+                    btnBeat.disabled = true;
                 }
             } else {
                 btnTake.disabled = true;
@@ -1030,7 +1033,7 @@
                 durakTable.push({ attack: card, defend: null });
                 durakPlayerHand.splice(index, 1);
                 renderDurak();
-                setTimeout(dealerTurn, 800);
+                setTimeout(dealerTurn, 1000);
             } else {
                 // Отбивание
                 const unbeatened = durakTable.find(p => !p.defend);
@@ -1040,7 +1043,9 @@
                         unbeatened.defend = card;
                         durakPlayerHand.splice(index, 1);
                         renderDurak();
-                        setTimeout(dealerTurn, 800);
+                        
+                        // Если отбились, проверяем, может ли дилер подкинуть
+                        setTimeout(dealerTurn, 1000);
                     } else {
                         showToast("Эта карта не бьет!", "#ff4444", 1500);
                     }
@@ -1085,7 +1090,7 @@
         }
 
         function dealerTurn() {
-            if (!durakActive || durakTurn !== 'dealer') return;
+            if (!durakActive) return;
             
             const unbeatened = durakTable.find(p => !p.defend);
             
@@ -1103,7 +1108,7 @@
                     sCard();
                     unbeatened.defend = durakDealerHand.splice(cardToPlayIdx, 1)[0];
                     renderDurak();
-                    setTimeout(dealerTurn, 800);
+                    setTimeout(dealerTurn, 1000); // Дилер "думает" над подкидыванием
                 } else {
                     // Дилер забирает
                     showToast("Дилер забирает!", "#ff4444");
@@ -1118,16 +1123,17 @@
                     setTimeout(endRound, 1000);
                 }
             } else {
-                // Дилер атакует, если у него есть карты того же ранга
+                // Дилер атакует (или подкидывает), если у него есть карты того же ранга
                 const ranksOnTable = durakTable.map(p => p.attack.value);
                 let cardToAttackIdx = -1;
                 
-                // Если стол пуст, ход дилера означает, что он должен начать атаку
                 if (durakTable.length === 0) {
+                    // Если стол пуст, дилер начинает новую атаку
                     if (durakDealerHand.length > 0) {
-                        cardToAttackIdx = 0; // Берем первую попавшуюся
+                        cardToAttackIdx = 0;
                     }
                 } else {
+                    // Ищем, что подкинуть
                     for (let i = 0; i < durakDealerHand.length; i++) {
                         if (ranksOnTable.includes(durakDealerHand[i].value)) {
                             cardToAttackIdx = i;
@@ -1140,9 +1146,10 @@
                     sCard();
                     durakTable.push({ attack: durakDealerHand.splice(cardToAttackIdx, 1)[0], defend: null });
                     renderDurak();
-                    setTimeout(dealerTurn, 800);
+                    durakTurn = 'player'; // Ход снова у игрока (отбиваться)
+                    updateDurakControls();
                 } else {
-                    // Дилер больше не может атаковать
+                    // Дилер больше не может атаковать (Бито!)
                     durakTable = [];
                     renderDurak();
                     setTimeout(endRound, 500);
@@ -1185,7 +1192,7 @@
 
             // Смена хода
             if (durakPlayerTaking) {
-                durakTurn = 'dealer'; // Если игрок взял, дилер атакует
+                durakTurn = 'dealer'; // Игрок взял, дилер атакует
             } else {
                 durakTurn = 'player'; // Игрок отбился, он снова атакует
             }
@@ -1194,9 +1201,8 @@
             durakDealerTaking = false;
             updateDurakControls();
 
-            // Если ход перешел дилеру, запускаем его атаку
             if (durakTurn === 'dealer') {
-                setTimeout(dealerTurn, 500);
+                setTimeout(dealerTurn, 1000);
             }
         }
 
