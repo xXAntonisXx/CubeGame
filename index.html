@@ -181,26 +181,47 @@
         #durak .cards { min-height: 75px; }
         #durak .card { width: 45px; height: 65px; font-size: 18px; }
         
+        /* ИСПРАВЛЕННЫЙ БЛОК СТОЛА В ДУРАКЕ */
         #durak-cards-in-play { 
-            display: flex; justify-content: center; align-items: flex-start; 
-            gap: 15px; min-height: 90px; margin-top: 5px; flex-wrap: wrap;
+            display: flex; justify-content: center; align-items: center; 
+            gap: 10px; min-height: 100px; margin-top: 5px; flex-wrap: wrap;
             background: rgba(0,0,0,0.1); border-radius: 10px; padding: 10px;
             width: 90%; border: 1px dashed rgba(255,255,255,0.2);
             position: relative;
         }
-        .pair-container { display: flex; position: relative; width: 45px; height: 65px; }
-        .pair-container .card { position: absolute; top: 0; left: 0; }
-        .pair-container .card:nth-child(2) { transform: translate(12px, 8px) rotate(10deg); box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
+        .pair-container { 
+            display: flex; 
+            position: relative; 
+            width: 65px; 
+            height: 65px; 
+            margin-right: 5px;
+        }
+        /* Карта атаки (левая) */
+        .pair-container .card:nth-child(1) { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
+        /* Карта защиты (правая, чуть смещена) */
+        .pair-container .card:nth-child(2) { 
+            position: absolute; 
+            top: 0; 
+            left: 20px; 
+            z-index: 2;
+            transform: rotate(10deg); 
+            box-shadow: -2px 2px 5px rgba(0,0,0,0.5); 
+        }
 
-        /* Инфо о козыре (ЛЕВЫЙ НИЖНИЙ УГОЛ) */
+        /* Инфо о козыре (СЛЕВА СНИЗУ) */
         .trump-info {
-            position: absolute; left: 10px; bottom: 10px;
-            background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 8px;
-            border: 1px solid var(--gold); font-size: 10px; color: var(--gold);
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            position: absolute; left: 15px; bottom: 15px;
+            background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 10px;
+            border: 1px solid var(--gold); font-size: 12px; color: var(--gold);
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
             z-index: 10;
         }
-        .trump-info .card { width: 20px; height: 30px; font-size: 12px; box-shadow: none; }
+        .trump-info .card { width: 25px; height: 38px; font-size: 12px; box-shadow: none; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -320,7 +341,7 @@
                     <div class="cards" id="durak-player-hand"></div>
                 </div>
 
-                <!-- Козырь в углу -->
+                <!-- Козырь слева внизу -->
                 <div class="trump-info" id="durak-trump-info">
                     <span>Козырь: <span id="durak-trump-suit"></span></span>
                     <div id="durak-trump-card-container"></div>
@@ -987,10 +1008,6 @@
 
                 if (pair.defend) {
                     const defendEl = createCardElement(pair.defend, false, 0);
-                    defendEl.style.position = 'absolute';
-                    defendEl.style.top = '15px';
-                    defendEl.style.left = '15px';
-                    defendEl.style.transform = 'rotate(10deg)';
                     pDiv.appendChild(defendEl);
                 }
                 tEl.appendChild(pDiv);
@@ -1008,7 +1025,9 @@
             
             if (durakTurn === 'player') {
                 btnTake.disabled = durakTable.length === 0;
-                btnBeat.disabled = durakTable.length === 0;
+                // Кнопка "Бито" активна только если ВСЕ карты отбиты
+                btnBeat.disabled = durakTable.length === 0 || !durakTable.every(p => p.defend);
+                
                 if(durakTable.length > 0 && durakTable.every(p => p.defend)) {
                     btnBeat.innerText = "Бито";
                     btnBeat.disabled = false;
@@ -1028,7 +1047,7 @@
             const card = durakPlayerHand[index];
             
             if (durakTable.length === 0) {
-                // Атака
+                // Атака (стол пуст)
                 sCard();
                 durakTable.push({ attack: card, defend: null });
                 durakPlayerHand.splice(index, 1);
@@ -1036,9 +1055,9 @@
                 renderDurak();
                 setTimeout(dealerTurn, 1000);
             } else {
-                // Отбивание
                 const unbeatened = durakTable.find(p => !p.defend);
                 if (unbeatened) {
+                    // Пытаемся отбиться
                     if (canBeat(card, unbeatened.attack)) {
                         sCard();
                         unbeatened.defend = card;
@@ -1048,6 +1067,21 @@
                         setTimeout(dealerTurn, 1000);
                     } else {
                         showToast("Эта карта не бьет!", "#ff4444", 1500);
+                    }
+                } else {
+                    // Стол отбит, пытаемся подкинуть карту
+                    const ranksOnTable = durakTable.map(p => p.attack.value);
+                    if (ranksOnTable.includes(card.value)) {
+                        sCard();
+                        durakTable.push({ attack: card, defend: null });
+                        durakPlayerHand.splice(index, 1);
+                        renderDurak();
+                        
+                        // После подкидывания ждем, пока дилер отобьется
+                        durakTurn = 'dealer';
+                        setTimeout(dealerTurn, 1000);
+                    } else {
+                        showToast("Нельзя подкинуть эту карту (нет такого ранга на столе)!", "#ff4444", 2000);
                     }
                 }
             }
