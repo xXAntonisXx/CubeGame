@@ -320,7 +320,6 @@
         <!-- ДУРАК -->
         <div class="screen hidden" id="durak">
             <div class="table">
-                <!-- Козырь слева вверху -->
                 <div class="trump-info" id="durak-trump-info">
                     <span>Козырь: <span id="durak-trump-suit"></span></span>
                     <div id="durak-trump-card-container"></div>
@@ -891,13 +890,13 @@
         }
 
         // ==========================================
-        // ДУРАК (УПРОЩЕННЫЙ ПОДКИДНОЙ)
+        // ДУРАК (ПОЛНОЦЕННЫЙ ПОДКИДНОЙ)
         // ==========================================
         let durakDeck = [], durakTrump = '♠', durakPlayerHand = [], durakDealerHand = [], durakTable = [];
         let durakActive = false;
-        let durakTurn = 'player';
-        let durakPlayerTaking = false;
-        let durakDealerTaking = false;
+        let durakTurn = 'player'; // 'player' или 'dealer'
+        let durakPlayerTaking = false; // Игрок забирает карты
+        let durakDealerTaking = false; // Дилер забирает карты
 
         function resetDurakUI() {
             durakActive = false;
@@ -937,7 +936,7 @@
             durakDealerHand = durakDeck.splice(0, 6);
             durakTable = [];
             durakActive = true;
-            durakTurn = 'player';
+            durakTurn = 'player'; // Первый ход у игрока (для простоты)
             durakPlayerTaking = false;
             durakDealerTaking = false;
 
@@ -1032,12 +1031,10 @@
             
             const card = durakPlayerHand[index];
             
-            // Собираем ранги ВСЕХ карт на столе (атака + защита)
             const ranksOnTable = durakTable.map(p => p.attack.value);
             durakTable.forEach(p => { if(p.defend) ranksOnTable.push(p.defend.value); });
 
             if (durakTable.length === 0) {
-                // Атака
                 sCard();
                 durakTable.push({ attack: card, defend: null });
                 durakPlayerHand.splice(index, 1);
@@ -1047,7 +1044,6 @@
             } else {
                 const unbeatened = durakTable.find(p => !p.defend);
                 if (unbeatened) {
-                    // Пытаемся отбиться
                     if (canBeat(card, unbeatened.attack)) {
                         sCard();
                         unbeatened.defend = card;
@@ -1059,7 +1055,6 @@
                         showToast("Эта карта не бьет!", "#ff4444", 1500);
                     }
                 } else {
-                    // Подкидывание карты (когда все отбито)
                     if (ranksOnTable.includes(card.value)) {
                         sCard();
                         durakTable.push({ attack: card, defend: null });
@@ -1104,7 +1099,7 @@
             } else if (action === 'beat') {
                 if (durakTable.every(p => p.defend)) {
                     durakTable = [];
-                    durakTurn = 'dealer'; // Передаем ход дилеру!
+                    durakTurn = 'dealer'; // Атакующий (игрок) успешно отбился
                     renderDurak();
                     setTimeout(endRound, 500);
                 }
@@ -1117,7 +1112,6 @@
             const unbeatened = durakTable.find(p => !p.defend);
             
             if (unbeatened) {
-                // Ищем карту для отбивания
                 let cardToPlayIdx = -1;
                 for (let i = 0; i < durakDealerHand.length; i++) {
                     if (canBeat(durakDealerHand[i], unbeatened.attack)) {
@@ -1129,11 +1123,10 @@
                 if (cardToPlayIdx !== -1) {
                     sCard();
                     unbeatened.defend = durakDealerHand.splice(cardToPlayIdx, 1)[0];
-                    durakTurn = 'player'; // Дилер отбился, ход у игрока
+                    durakTurn = 'player'; // Дилер отбился
                     renderDurak();
                     updateDurakControls();
                 } else {
-                    // Дилер забирает
                     showToast("Дилер забирает!", "#ff4444");
                     durakDealerTaking = true;
                     durakTable.forEach(pair => {
@@ -1146,7 +1139,6 @@
                     setTimeout(endRound, 1000);
                 }
             } else {
-                // Дилер атакует (или подкидывает)
                 const ranksOnTable = durakTable.map(p => p.attack.value);
                 durakTable.forEach(p => { if(p.defend) ranksOnTable.push(p.defend.value); });
                 
@@ -1166,11 +1158,10 @@
                 if (cardToAttackIdx !== -1) {
                     sCard();
                     durakTable.push({ attack: durakDealerHand.splice(cardToAttackIdx, 1)[0], defend: null });
-                    durakTurn = 'player'; // Ход снова у игрока (отбиваться)
+                    durakTurn = 'player';
                     renderDurak();
                     updateDurakControls();
                 } else {
-                    // Дилер больше не может атаковать (Бито!)
                     durakTable = [];
                     renderDurak();
                     setTimeout(endRound, 500);
@@ -1181,6 +1172,7 @@
         function endRound() {
             if (!durakActive) return;
 
+            // Добор до 6 карт (атакующий первым, защитник последним)
             while (durakPlayerHand.length < 6 && durakDeck.length > 0) durakPlayerHand.push(durakDeck.pop());
             while (durakDealerHand.length < 6 && durakDeck.length > 0) durakDealerHand.push(durakDeck.pop());
             
@@ -1214,8 +1206,10 @@
             // Смена хода
             if (durakPlayerTaking) {
                 durakTurn = 'dealer'; // Игрок взял, дилер атакует
+            } else if (durakDealerTaking) {
+                durakTurn = 'player'; // Дилер взял, игрок атакует
             } else {
-                durakTurn = 'player'; // Игрок отбился, он снова атакует
+                durakTurn = 'player'; // По умолчанию
             }
 
             durakPlayerTaking = false;
