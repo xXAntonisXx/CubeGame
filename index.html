@@ -1,4 +1,4 @@
-<!DOCTYPE html>п
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -189,25 +189,19 @@
             position: relative;
         }
         
-        /* Карты на столе теперь перекрываются на 25% */
+        /* Карты на столе: вторая перекрывает первую на 25% */
         .pair-container { 
             display: flex; 
             position: relative; 
-            width: 60px; /* Ширина под одну карту + 25% наложения */
+            width: 60px; 
             height: 65px; 
             margin-right: 10px;
         }
         .pair-container .card:nth-child(1) { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 1; 
+            position: absolute; top: 0; left: 0; z-index: 1; 
         }
         .pair-container .card:nth-child(2) { 
-            position: absolute; 
-            top: 0; 
-            left: 35px; /* Смещение для наложения на 25% */
-            z-index: 2;
+            position: absolute; top: 0; left: 35px; z-index: 2;
             transform: rotate(5deg); 
             box-shadow: -2px 2px 5px rgba(0,0,0,0.5); 
         }
@@ -899,7 +893,7 @@
         }
 
         // ==========================================
-        // ДУРАК (УПРОЩЕННЫЙ ПОДКИДНОЙ)
+        // ДУРАК (УПРОЩЕННЫЙ ПОДКИДНОЙ) - ПОЛНОСТЬЮ ИСПРАВЛЕН
         // ==========================================
         let durakDeck = [], durakTrump = '♠', durakPlayerHand = [], durakDealerHand = [], durakTable = [];
         let durakActive = false;
@@ -1040,16 +1034,18 @@
             
             const card = durakPlayerHand[index];
             
+            // Собираем все ранги, которые есть на столе (включая отбитые)
+            const ranksOnTable = durakTable.map(p => p.attack.value);
+
             if (durakTable.length === 0) {
                 // Атака
                 sCard();
                 durakTable.push({ attack: card, defend: null });
                 durakPlayerHand.splice(index, 1);
-                durakTurn = 'dealer'; // Передаем ход дилеру
+                durakTurn = 'dealer';
                 renderDurak();
                 setTimeout(dealerTurn, 1000);
             } else {
-                // Отбивание или подкидывание
                 const unbeatened = durakTable.find(p => !p.defend);
                 if (unbeatened) {
                     // Пытаемся отбиться
@@ -1057,15 +1053,14 @@
                         sCard();
                         unbeatened.defend = card;
                         durakPlayerHand.splice(index, 1);
-                        durakTurn = 'dealer'; // Передаем ход дилеру
+                        durakTurn = 'dealer';
                         renderDurak(); 
                         setTimeout(dealerTurn, 1000);
                     } else {
                         showToast("Эта карта не бьет!", "#ff4444", 1500);
                     }
                 } else {
-                    // Подкидывание карты (когда все отбито)
-                    const ranksOnTable = durakTable.map(p => p.attack.value);
+                    // Подкидывание карты
                     if (ranksOnTable.includes(card.value)) {
                         sCard();
                         durakTable.push({ attack: card, defend: null });
