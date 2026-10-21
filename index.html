@@ -208,6 +208,7 @@
                 #111 257.14deg 274.28deg, #d32f2f 274.28deg 291.42deg, #111 291.42deg 308.57deg, 
                 #d32f2f 308.57deg 325.71deg, #111 325.71deg 342.85deg, #4ade80 342.85deg 360deg
             );
+            /* Базовый сдвиг, чтобы сектор 0 (Красный) начинался ровно под стрелкой */
             transform: rotate(-90deg); 
         }
         .wheel-pointer {
@@ -1020,21 +1021,19 @@
         }
 
         // ==========================================
-        // КОЛЕСО (ИСПРАВЛЕНА МАТЕМАТИКА СЕКТОРОВ)
+        // КОЛЕСО (ИСПРАВЛЕНА МАТЕМАТИКА)
         // ==========================================
         let wheelSpinning = false;
         let selectedWheelBet = 'red';
-        
-        // Массив из 21 сектора (0 - красное, 1 - черное, 2 - зеленое)
-        const wheelColors = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2];
+        const wheelColors = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2]; // 0=Red, 1=Black, 2=Green
 
         function resetWheelUI() {
             wheelSpinning = false;
             document.getElementById('btn-wheel-spin').disabled = false;
             document.getElementById('wheel-bet-controls').style.display = 'flex';
             
-            // Сбрасываем трансформацию на базовый сдвиг (-90)
-            document.getElementById('wheel-spin').style.transform = 'rotate(-90deg)';
+            // Устанавливаем базовый сдвиг (0 градусов для колеса, т.к. в CSS оно уже сдвинуто на -90)
+            document.getElementById('wheel-spin').style.transform = 'rotate(0deg)';
             selectWheelBet('red');
         }
 
@@ -1061,27 +1060,34 @@
 
             const wheelEl = document.getElementById('wheel-spin');
             
-            // Выбираем случайный выигрышный сектор от 0 до 20
+            // 1. Случайно выбираем выигрышный сектор (0-20)
             const winningSector = Math.floor(Math.random() * 21); 
             
-            // Вычисляем нужный угол. 
-            // Сектор 0 начинается с 0 градусов и идет вправо (по часовой).
-            // Нам нужно, чтобы выигрышный сектор оказался наверху (под стрелкой).
-            // Поэтому мы добавляем 360 градусов за каждый сектор и вычитаем половину сектора (чтобы центр оказался под стрелкой).
-            // Плюс 5 полных оборотов для красоты (1800 градусов).
+            // 2. Вычисляем угол
+            // В CSS колесо уже повернуто на -90.
+            // Каждый сектор = 17.14 градусов.
+            // Нам нужно, чтобы winningSector оказался наверху (под стрелкой).
+            // Формула: 
+            // (winningSector * 17.14) - смещение сектора наверх
+            // Но так как мы крутим по часовой стрелке (положительные углы), 
+            // а сектора идут по часовой, то мы должны вычитать угол сектора.
             const sectorAngle = 360 / 21;
-            const targetAngle = -90 - (winningSector * sectorAngle) - (sectorAngle / 2) - 1800;
+            // Вычитаем половину сектора, чтобы центр оказался ровно под стрелкой
+            const targetRotation = -(winningSector * sectorAngle) - (sectorAngle / 2);
             
-            wheelEl.style.transform = `rotate(${targetAngle}deg)`;
+            // Добавляем 5 полных оборотов для красоты
+            const finalRotation = targetRotation - 1800;
+            
+            wheelEl.style.transform = `rotate(${finalRotation}deg)`;
             
             let spinSoundInterval = setInterval(() => playSound(300, 'triangle', 0.05), 100);
             
             setTimeout(() => {
                 clearInterval(spinSoundInterval);
                 
-                // Определяем результат по индексу выигрышного сектора
-                const resultColorCode = wheelColors[winningSector];
-                let resultColorStr = resultColorCode === 0 ? 'red' : resultColorCode === 1 ? 'black' : 'green';
+                // 3. Определяем цвет по массиву, используя индекс winningSector
+                const colorCode = wheelColors[winningSector];
+                const resultColorStr = colorCode === 0 ? 'red' : colorCode === 1 ? 'black' : 'green';
 
                 let win = 0;
                 if (selectedWheelBet === 'green' && resultColorStr === 'green') {
