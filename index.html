@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>п
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -183,18 +183,19 @@
         
         #durak-cards-in-play { 
             display: flex; justify-content: center; align-items: center; 
-            gap: 10px; min-height: 100px; margin-top: 5px; flex-wrap: wrap;
+            gap: 15px; min-height: 100px; margin-top: 5px; flex-wrap: wrap;
             background: rgba(0,0,0,0.1); border-radius: 10px; padding: 10px;
             width: 90%; border: 1px dashed rgba(255,255,255,0.2);
             position: relative;
         }
-        /* Карты на столе больше не перекрывают друг друга */
+        
+        /* Карты на столе теперь перекрываются на 25% */
         .pair-container { 
             display: flex; 
             position: relative; 
-            width: 100px; /* Ширина под две карты */
+            width: 60px; /* Ширина под одну карту + 25% наложения */
             height: 65px; 
-            margin-right: 5px;
+            margin-right: 10px;
         }
         .pair-container .card:nth-child(1) { 
             position: absolute; 
@@ -205,7 +206,7 @@
         .pair-container .card:nth-child(2) { 
             position: absolute; 
             top: 0; 
-            left: 50px; /* Смещение вправо */
+            left: 35px; /* Смещение для наложения на 25% */
             z-index: 2;
             transform: rotate(5deg); 
             box-shadow: -2px 2px 5px rgba(0,0,0,0.5); 
@@ -820,13 +821,10 @@
             let suits = cards.map(c => c.suit);
             let isFlush = suits.every(s => s === suits[0]);
 
-            // Проверка стрита (с учетом A как 1 или 14)
             let isStraight = false;
             let uniqueVals = [...new Set(values)];
             if (uniqueVals.length === 5) {
-                // Обычный стрит
                 if (uniqueVals[0] - uniqueVals[4] === 4) isStraight = true;
-                // Стрит с Тузом внизу (A,2,3,4,5)
                 if (uniqueVals[0] === 14 && uniqueVals[1] === 5 && uniqueVals[4] === 2) isStraight = true;
             }
 
@@ -1022,7 +1020,6 @@
             
             if (durakTurn === 'player') {
                 btnTake.disabled = durakTable.length === 0;
-                // Кнопка "Бито" активна только если ВСЕ карты отбиты
                 btnBeat.disabled = durakTable.length === 0 || !durakTable.every(p => p.defend);
                 
                 if(durakTable.length > 0 && durakTable.every(p => p.defend)) {
@@ -1044,7 +1041,7 @@
             const card = durakPlayerHand[index];
             
             if (durakTable.length === 0) {
-                // Атака (стол пуст)
+                // Атака
                 sCard();
                 durakTable.push({ attack: card, defend: null });
                 durakPlayerHand.splice(index, 1);
@@ -1052,6 +1049,7 @@
                 renderDurak();
                 setTimeout(dealerTurn, 1000);
             } else {
+                // Отбивание или подкидывание
                 const unbeatened = durakTable.find(p => !p.defend);
                 if (unbeatened) {
                     // Пытаемся отбиться
@@ -1059,22 +1057,20 @@
                         sCard();
                         unbeatened.defend = card;
                         durakPlayerHand.splice(index, 1);
-                        durakTurn = 'dealer'; // Передаем ход дилеру (для подкидывания)
+                        durakTurn = 'dealer'; // Передаем ход дилеру
                         renderDurak(); 
                         setTimeout(dealerTurn, 1000);
                     } else {
                         showToast("Эта карта не бьет!", "#ff4444", 1500);
                     }
                 } else {
-                    // Стол отбит, пытаемся подкинуть карту
+                    // Подкидывание карты (когда все отбито)
                     const ranksOnTable = durakTable.map(p => p.attack.value);
                     if (ranksOnTable.includes(card.value)) {
                         sCard();
                         durakTable.push({ attack: card, defend: null });
                         durakPlayerHand.splice(index, 1);
                         renderDurak();
-                        
-                        // После подкидывания ждем, пока дилер отобьется
                         durakTurn = 'dealer';
                         setTimeout(dealerTurn, 1000);
                     } else {
@@ -1114,6 +1110,7 @@
             } else if (action === 'beat') {
                 if (durakTable.every(p => p.defend)) {
                     durakTable = [];
+                    durakTurn = 'dealer'; // ИСПРАВЛЕНО: Передаем ход дилеру!
                     renderDurak();
                     setTimeout(endRound, 500);
                 }
