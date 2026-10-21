@@ -208,6 +208,8 @@
                 #111 257.14deg 274.28deg, #d32f2f 274.28deg 291.42deg, #111 291.42deg 308.57deg, 
                 #d32f2f 308.57deg 325.71deg, #111 325.71deg 342.85deg, #4ade80 342.85deg 360deg
             );
+            /* Поворачиваем на -90, чтобы 0-й сектор (Красный) оказался под стрелкой сверху */
+            transform: rotate(-90deg); 
         }
         .wheel-pointer {
             position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
@@ -333,7 +335,7 @@
             <div class="action-controls" id="poker-action-controls" style="display: none;">
                 <button class="action-btn" onclick="pokerAction('fold')">Пас</button>
                 <button class="action-btn" onclick="pokerAction('call')">Колл</button>
-                <button class="action-btn" onclick="pokerAction('raise')">Рейз x2</button>
+                <button class="action-btn" onclick="pokerAction('raise')" id="btn-poker-raise">Рейз</button>
             </div>
             <div class="action-controls" id="poker-restart">
                 <button class="action-btn" id="btn-poker-deal" onclick="startPoker()">Раздать</button>
@@ -732,7 +734,7 @@
         }
 
         // ==========================================
-        // ПОКЕР (УПРОЩЕННЫЙ)
+        // ПОКЕР (С ПЛАВНОЙ АНИМАЦИЕЙ И РЕЙЗОМ)
         // ==========================================
         let pDeck = [], pPlayerHand = [], pDealerHand = [], pCommunity = [], pGameActive = false;
         
@@ -772,11 +774,37 @@
             pCommunity = [];
             pGameActive = true;
 
-            renderPoker();
+            // Очищаем контейнеры перед первой раздачей
+            document.getElementById('poker-player-hand').innerHTML = '';
+            document.getElementById('poker-dealer-hand').innerHTML = '';
+            document.getElementById('poker-community').innerHTML = '';
+            
+            renderPokerInitial(); // Специальная отрисовка для старта
 
             document.getElementById('poker-action-controls').style.display = 'flex';
             document.getElementById('poker-restart').style.display = 'none';
             document.getElementById('poker-bet-controls').style.display = 'none';
+            
+            // Сброс кнопки рейза
+            document.getElementById('btn-poker-raise').innerText = `Рейз`;
+        }
+
+        function renderPokerInitial() {
+            const pEl = document.getElementById('poker-player-hand');
+            const dEl = document.getElementById('poker-dealer-hand');
+            
+            pPlayerHand.forEach((c, i) => pEl.appendChild(createCardElement(c, false, i)));
+            pDealerHand.forEach((c, i) => dEl.appendChild(createCardElement(c, true, i)));
+        }
+
+        // Функция для добавления карты на стол без перерисовки всего
+        function addCommunityCards(num) {
+            const cEl = document.getElementById('poker-community');
+            for(let i=0; i<num; i++) {
+                const card = pDeck.pop();
+                pCommunity.push(card);
+                cEl.appendChild(createCardElement(card, false, i));
+            }
         }
 
         function pokerAction(action) {
@@ -791,13 +819,15 @@
                 endPoker();
             } else if (action === 'call') {
                 if (pCommunity.length === 0) {
-                    pCommunity.push(pDeck.pop(), pDeck.pop(), pDeck.pop());
-                    renderPoker();
+                    addCommunityCards(3); // Флоп
                     sCard();
                 } 
-                else if (pCommunity.length < 5) {
-                    pCommunity.push(pDeck.pop());
-                    renderPoker();
+                else if (pCommunity.length === 3) {
+                    addCommunityCards(1); // Терн
+                    sCard();
+                } 
+                else if (pCommunity.length === 4) {
+                    addCommunityCards(1); // Ривер
                     sCard();
                 } 
                 else {
@@ -805,35 +835,34 @@
                 }
             } else if (action === 'raise') {
                 if (balance < bet) { showToast("Не хватает на рейз!", "#ff4444"); return; }
-                balance -= bet;
-                updateBalanceUI();
-                currentPokerBet *= 2; 
-                showToast("Рейз!", "#ffd700");
                 
-                while (pCommunity.length < 5) {
-                    pCommunity.push(pDeck.pop());
+                let raiseAmount = parseInt(prompt(`Текущая ставка: ${bet}. На сколько поднять?`, 100));
+                
+                if (isNaN(raiseAmount) || raiseAmount < 10) {
+                    showToast("Неверная сумма рейза.", "#ff4444");
+                    return;
                 }
-                renderPoker();
-                determinePokerWinner();
+                
+                if (balance < raiseAmount) {
+                    showToast("Недостаточно средств для такого рейза!", "#ff4444");
+                    return;
+                }
+
+                balance -= raiseAmount;
+                updateBalanceUI();
+                currentPokerBet += raiseAmount; 
+                showToast(`Вы подняли на ${raiseAmount}! Текущая ставка: ${currentPokerBet}`, "#ffd700");
+                
+                // Игра НЕ заканчивается. Вы можете нажать "Колл" или снова "Рейз".
+                // Кнопка Рейз обновится, чтобы отображать новую сумму
+                document.getElementById('btn-poker-raise').innerText = `Рейз (+${currentPokerBet})`;
             }
         }
 
         function renderPoker() {
-            const pEl = document.getElementById('poker-player-hand');
             const dEl = document.getElementById('poker-dealer-hand');
-            const cEl = document.getElementById('poker-community');
-            
-            pEl.innerHTML = '';
             dEl.innerHTML = '';
-            cEl.innerHTML = '';
-            
-            pPlayerHand.forEach((c, i) => pEl.appendChild(createCardElement(c, false, i)));
-            
-            pDealerHand.forEach((c, i) => {
-                dEl.appendChild(createCardElement(c, pGameActive, i));
-            });
-            
-            pCommunity.forEach((c, i) => cEl.appendChild(createCardElement(c, false, i)));
+            pDealerHand.forEach((c, i) => dEl.appendChild(createCardElement(c, false, i)));
         }
 
         function evaluateHand(cards) {
@@ -874,7 +903,7 @@
         function determinePokerWinner() {
             pGameActive = false;
             
-            renderPoker();
+            renderPoker(); // Открываем карты дилера
 
             const playerTotal = [...pPlayerHand, ...pCommunity];
             const dealerTotal = [...pDealerHand, ...pCommunity];
@@ -997,16 +1026,21 @@
         }
 
         // ==========================================
-        // КОЛЕСО
+        // КОЛЕСО (ИСПРАВЛЕНА МАТЕМАТИКА И СДВИГ)
         // ==========================================
         let wheelSpinning = false;
         let selectedWheelBet = 'red';
+        
+        // Массив из 21 сектора (0 - красное, 1 - черное, 2 - зеленое)
+        const wheelColors = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2];
 
         function resetWheelUI() {
             wheelSpinning = false;
             document.getElementById('btn-wheel-spin').disabled = false;
             document.getElementById('wheel-bet-controls').style.display = 'flex';
-            document.getElementById('wheel-spin').style.transform = 'rotate(0deg)';
+            
+            // Сбрасываем трансформацию на базовый сдвиг (-90)
+            document.getElementById('wheel-spin').style.transform = 'rotate(-90deg)';
             selectWheelBet('red');
         }
 
@@ -1033,42 +1067,41 @@
 
             const wheelEl = document.getElementById('wheel-spin');
             
-            // Генерируем случайный угол (минимум 5 полных оборотов)
-            const randomAngle = 1800 + Math.floor(Math.random() * 360);
-            wheelEl.style.transform = `rotate(${randomAngle}deg)`;
+            // Выбираем случайный выигрышный сектор от 0 до 20
+            const winningSector = Math.floor(Math.random() * 21); 
             
-            // Звук кручения
+            // В CSS мы уже повернули колесо на -90.
+            // Теперь нам нужно повернуть его на -(winningSector * 17.14) - 8.57, чтобы центр сектора встал под стрелку.
+            // И добавить 5 полных оборотов (1800) для анимации.
+            const sectorAngle = 360 / 21;
+            const targetAngle = -90 - (winningSector * sectorAngle) - (sectorAngle / 2) - 1800;
+            
+            wheelEl.style.transform = `rotate(${targetAngle}deg)`;
+            
             let spinSoundInterval = setInterval(() => playSound(300, 'triangle', 0.05), 100);
             
             setTimeout(() => {
                 clearInterval(spinSoundInterval);
                 
-                // Вычисляем, на что выпало
-                const finalAngle = randomAngle % 360;
-                // Сектор зеленого (0-17.14 градусов) находится вверху
-                const isGreen = finalAngle >= 342.85 || finalAngle < 17.14;
-                // Красное/Черное чередуются
-                let isRed = false;
-                if (!isGreen) {
-                    const sector = Math.floor((finalAngle - 17.14) / 17.14);
-                    isRed = sector % 2 === 0;
-                }
+                // Определяем результат по индексу выигрышного сектора
+                const resultColorCode = wheelColors[winningSector];
+                let resultColorStr = resultColorCode === 0 ? 'red' : resultColorCode === 1 ? 'black' : 'green';
 
                 let win = 0;
-                if (selectedWheelBet === 'green' && isGreen) {
+                if (selectedWheelBet === 'green' && resultColorStr === 'green') {
                     win = bet * 14;
                     showToast(`ЗЕЛЕНОЕ! Выигрыш x14!`, "#4ade80", 4000);
                     sWin();
-                } else if (selectedWheelBet === 'red' && isRed) {
+                } else if (selectedWheelBet === 'red' && resultColorStr === 'red') {
                     win = bet * 2;
                     showToast(`Красное! Выигрыш x2!`, "#4ade80");
                     sWin();
-                } else if (selectedWheelBet === 'black' && !isGreen && !isRed) {
+                } else if (selectedWheelBet === 'black' && resultColorStr === 'black') {
                     win = bet * 2;
                     showToast(`Черное! Выигрыш x2!`, "#4ade80");
                     sWin();
                 } else {
-                    showToast(`Не угадали. Выпало ${isGreen ? 'Зеленое' : isRed ? 'Красное' : 'Черное'}.`, "#ff4444");
+                    showToast(`Не угадали. Выпало ${resultColorStr === 'green' ? 'Зеленое' : resultColorStr === 'red' ? 'Красное' : 'Черное'}.`, "#ff4444");
                     sLose();
                 }
 
@@ -1078,7 +1111,7 @@
                 document.getElementById('btn-wheel-spin').disabled = false;
                 document.getElementById('wheel-bet-controls').style.display = 'flex';
 
-            }, 3100); // Ждем окончания анимации (3s) + запас
+            }, 3100);
         }
 
         // Инициализация
