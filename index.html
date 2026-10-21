@@ -181,7 +181,6 @@
         #durak .cards { min-height: 75px; }
         #durak .card { width: 45px; height: 65px; font-size: 18px; }
         
-        /* ИСПРАВЛЕННЫЙ БЛОК СТОЛА В ДУРАКЕ */
         #durak-cards-in-play { 
             display: flex; justify-content: center; align-items: center; 
             gap: 10px; min-height: 100px; margin-top: 5px; flex-wrap: wrap;
@@ -189,39 +188,38 @@
             width: 90%; border: 1px dashed rgba(255,255,255,0.2);
             position: relative;
         }
+        /* Карты на столе больше не перекрывают друг друга */
         .pair-container { 
             display: flex; 
             position: relative; 
-            width: 65px; 
+            width: 100px; /* Ширина под две карты */
             height: 65px; 
             margin-right: 5px;
         }
-        /* Карта атаки (левая) */
         .pair-container .card:nth-child(1) { 
             position: absolute; 
             top: 0; 
             left: 0; 
             z-index: 1; 
         }
-        /* Карта защиты (правая, чуть смещена) */
         .pair-container .card:nth-child(2) { 
             position: absolute; 
             top: 0; 
-            left: 20px; 
+            left: 50px; /* Смещение вправо */
             z-index: 2;
-            transform: rotate(10deg); 
+            transform: rotate(5deg); 
             box-shadow: -2px 2px 5px rgba(0,0,0,0.5); 
         }
 
-        /* Инфо о козыре (СЛЕВА СНИЗУ) */
+        /* Инфо о козыре (ЛЕВЫЙ ВЕРХНИЙ УГОЛ) */
         .trump-info {
-            position: absolute; left: 15px; bottom: 15px;
-            background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 10px;
+            position: absolute; left: 10px; top: 10px;
+            background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 8px;
             border: 1px solid var(--gold); font-size: 12px; color: var(--gold);
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            display: flex; align-items: center; gap: 5px;
             z-index: 10;
         }
-        .trump-info .card { width: 25px; height: 38px; font-size: 12px; box-shadow: none; }
+        .trump-info .card { width: 20px; height: 30px; font-size: 12px; box-shadow: none; margin-left: 5px;}
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -329,6 +327,12 @@
         <!-- ДУРАК -->
         <div class="screen hidden" id="durak">
             <div class="table">
+                <!-- Козырь слева вверху -->
+                <div class="trump-info" id="durak-trump-info">
+                    <span>Козырь: <span id="durak-trump-suit"></span></span>
+                    <div id="durak-trump-card-container"></div>
+                </div>
+
                 <div class="hand-container" style="margin-top: 5px;">
                     <div class="score-label">Дилер: <span id="durak-dealer-count"></span></div>
                     <div class="cards" id="durak-dealer-hand"></div>
@@ -339,12 +343,6 @@
                 <div class="hand-container">
                     <div class="score-label">Вы: <span id="durak-player-count"></span></div>
                     <div class="cards" id="durak-player-hand"></div>
-                </div>
-
-                <!-- Козырь слева внизу -->
-                <div class="trump-info" id="durak-trump-info">
-                    <span>Козырь: <span id="durak-trump-suit"></span></span>
-                    <div id="durak-trump-card-container"></div>
                 </div>
             </div>
             
@@ -555,7 +553,6 @@
             return d;
         }
 
-        // ИСПРАВЛЕНО: A = 14, K = 13, Q = 12, J = 11
         function getCardValue(card) {
             if (card.value === 'A') return 14;
             if (card.value === 'K') return 13;
