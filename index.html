@@ -192,14 +192,15 @@
         .pair-container .card { position: absolute; top: 0; left: 0; }
         .pair-container .card:nth-child(2) { transform: translate(12px, 8px) rotate(10deg); box-shadow: -2px 2px 5px rgba(0,0,0,0.5); }
 
-        /* Инфо о козыре - ВСТРОЕН В РУКУ ИГРОКА */
+        /* Инфо о козыре (ЛЕВЫЙ НИЖНИЙ УГОЛ) */
         .trump-info {
-            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 8px;
+            position: absolute; left: 10px; bottom: 10px;
+            background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 8px;
             border: 1px solid var(--gold); font-size: 10px; color: var(--gold);
-            margin-left: 10px;
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            z-index: 10;
         }
-        .trump-info .card { width: 20px; height: 30px; font-size: 12px; box-shadow: none; margin-top: 2px; }
+        .trump-info .card { width: 20px; height: 30px; font-size: 12px; box-shadow: none; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -314,16 +315,15 @@
 
                 <div id="durak-cards-in-play"></div>
                 
-                <!-- Козырь встроен прямо в блок с рукой игрока -->
                 <div class="hand-container">
                     <div class="score-label">Вы: <span id="durak-player-count"></span></div>
-                    <div style="display: flex; align-items: flex-end; width: 100%; justify-content: center;">
-                        <div class="cards" id="durak-player-hand" style="flex: 1;"></div>
-                        <div class="trump-info">
-                            <span>Козырь</span>
-                            <div id="durak-trump-card-container"></div>
-                        </div>
-                    </div>
+                    <div class="cards" id="durak-player-hand"></div>
+                </div>
+
+                <!-- Козырь в углу -->
+                <div class="trump-info" id="durak-trump-info">
+                    <span>Козырь: <span id="durak-trump-suit"></span></span>
+                    <div id="durak-trump-card-container"></div>
                 </div>
             </div>
             
@@ -534,7 +534,7 @@
             return d;
         }
 
-        // ИСПРАВЛЕННЫЙ getCardValue: A = 14
+        // ИСПРАВЛЕНО: A = 14, K = 13, Q = 12, J = 11
         function getCardValue(card) {
             if (card.value === 'A') return 14;
             if (card.value === 'K') return 13;
@@ -1032,6 +1032,7 @@
                 sCard();
                 durakTable.push({ attack: card, defend: null });
                 durakPlayerHand.splice(index, 1);
+                durakTurn = 'dealer'; // Передаем ход дилеру
                 renderDurak();
                 setTimeout(dealerTurn, 1000);
             } else {
@@ -1042,9 +1043,8 @@
                         sCard();
                         unbeatened.defend = card;
                         durakPlayerHand.splice(index, 1);
-                        renderDurak();
-                        
-                        // Если отбились, проверяем, может ли дилер подкинуть
+                        durakTurn = 'dealer'; // Передаем ход дилеру (для подкидывания)
+                        renderDurak(); 
                         setTimeout(dealerTurn, 1000);
                     } else {
                         showToast("Эта карта не бьет!", "#ff4444", 1500);
@@ -1090,7 +1090,7 @@
         }
 
         function dealerTurn() {
-            if (!durakActive) return;
+            if (!durakActive || durakTurn !== 'dealer') return;
             
             const unbeatened = durakTable.find(p => !p.defend);
             
@@ -1107,8 +1107,9 @@
                 if (cardToPlayIdx !== -1) {
                     sCard();
                     unbeatened.defend = durakDealerHand.splice(cardToPlayIdx, 1)[0];
+                    durakTurn = 'player'; // Дилер отбился, ход у игрока
                     renderDurak();
-                    setTimeout(dealerTurn, 1000); // Дилер "думает" над подкидыванием
+                    updateDurakControls();
                 } else {
                     // Дилер забирает
                     showToast("Дилер забирает!", "#ff4444");
@@ -1123,17 +1124,13 @@
                     setTimeout(endRound, 1000);
                 }
             } else {
-                // Дилер атакует (или подкидывает), если у него есть карты того же ранга
+                // Дилер атакует (или подкидывает)
                 const ranksOnTable = durakTable.map(p => p.attack.value);
                 let cardToAttackIdx = -1;
                 
                 if (durakTable.length === 0) {
-                    // Если стол пуст, дилер начинает новую атаку
-                    if (durakDealerHand.length > 0) {
-                        cardToAttackIdx = 0;
-                    }
+                    if (durakDealerHand.length > 0) cardToAttackIdx = 0;
                 } else {
-                    // Ищем, что подкинуть
                     for (let i = 0; i < durakDealerHand.length; i++) {
                         if (ranksOnTable.includes(durakDealerHand[i].value)) {
                             cardToAttackIdx = i;
@@ -1145,8 +1142,8 @@
                 if (cardToAttackIdx !== -1) {
                     sCard();
                     durakTable.push({ attack: durakDealerHand.splice(cardToAttackIdx, 1)[0], defend: null });
-                    renderDurak();
                     durakTurn = 'player'; // Ход снова у игрока (отбиваться)
+                    renderDurak();
                     updateDurakControls();
                 } else {
                     // Дилер больше не может атаковать (Бито!)
