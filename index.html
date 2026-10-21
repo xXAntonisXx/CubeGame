@@ -176,43 +176,37 @@
         .close-modal { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; transition: 0.2s; }
         .close-modal:active { transform: scale(0.8); }
 
-        /* --- ДУРАК --- */
-        #durak .table { height: 450px; justify-content: flex-start; gap: 10px; }
-        #durak .cards { min-height: 75px; }
-        #durak .card { width: 45px; height: 65px; font-size: 18px; }
+        /* --- ДУРАК (Игра на троих) --- */
+        #durak .table { height: 480px; justify-content: space-between; gap: 5px; padding: 10px; }
+        #durak .cards { min-height: 50px; gap: 2px; }
+        #durak .card { width: 35px; height: 50px; font-size: 14px; }
         
         #durak-cards-in-play { 
             display: flex; justify-content: center; align-items: center; 
-            gap: 15px; min-height: 100px; margin-top: 5px; flex-wrap: wrap;
-            background: rgba(0,0,0,0.1); border-radius: 10px; padding: 10px;
-            width: 90%; border: 1px dashed rgba(255,255,255,0.2);
+            gap: 10px; min-height: 60px; flex-wrap: wrap;
+            background: rgba(0,0,0,0.2); border-radius: 10px; padding: 5px;
+            width: 100%; border: 1px dashed rgba(255,255,255,0.2);
             position: relative;
         }
         
-        .pair-container { 
-            display: flex; 
-            position: relative; 
-            width: 60px; 
-            height: 65px; 
-            margin-right: 10px;
+        .durak-pair { 
+            display: flex; position: relative; width: 50px; height: 50px; 
         }
-        .pair-container .card:nth-child(1) { 
-            position: absolute; top: 0; left: 0; z-index: 1; 
-        }
-        .pair-container .card:nth-child(2) { 
-            position: absolute; top: 0; left: 35px; z-index: 2;
-            transform: rotate(5deg); 
-            box-shadow: -2px 2px 5px rgba(0,0,0,0.5); 
-        }
+        .durak-pair .card:nth-child(1) { position: absolute; top: 0; left: 0; z-index: 1; }
+        .durak-pair .card:nth-child(2) { position: absolute; top: 0; left: 15px; z-index: 2; transform: rotate(5deg); }
 
         .trump-info {
-            position: absolute; left: 10px; top: 10px;
-            background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 8px;
-            border: 1px solid var(--gold); font-size: 12px; color: var(--gold);
-            display: flex; align-items: center; gap: 5px;
+            position: absolute; left: 5px; top: 5px;
+            background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 5px;
+            border: 1px solid var(--gold); font-size: 10px; color: var(--gold);
+            display: flex; align-items: center; gap: 2px;
             z-index: 10;
         }
-        .trump-info .card { width: 20px; height: 30px; font-size: 12px; box-shadow: none; margin-left: 5px;}
+        .trump-info .card { width: 15px; height: 22px; font-size: 8px; box-shadow: none; }
+        
+        /* Индикаторы игроков */
+        .player-indicator { font-size: 14px; font-weight: bold; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .active-turn { color: var(--gold); border-bottom: 2px solid var(--gold); }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -317,7 +311,7 @@
             </div>
         </div>
 
-        <!-- ДУРАК -->
+        <!-- ДУРАК (Игра на троих) -->
         <div class="screen hidden" id="durak">
             <div class="table">
                 <div class="trump-info" id="durak-trump-info">
@@ -325,16 +319,25 @@
                     <div id="durak-trump-card-container"></div>
                 </div>
 
-                <div class="hand-container" style="margin-top: 5px;">
-                    <div class="score-label">Дилер: <span id="durak-dealer-count"></span></div>
-                    <div class="cards" id="durak-dealer-hand"></div>
+                <!-- Зона Бота 2 (сверху, он атакует вас) -->
+                <div class="hand-container" style="transform: scale(0.8); margin-bottom: -10px;">
+                    <div class="score-label player-indicator" id="durak-bot2-indicator">Бот 2 (Атакует Вас): <span id="durak-bot2-count"></span></div>
+                    <div class="cards" id="durak-bot2-hand"></div>
                 </div>
 
+                <!-- Стол -->
                 <div id="durak-cards-in-play"></div>
                 
+                <!-- Ваша рука (снизу) -->
                 <div class="hand-container">
-                    <div class="score-label">Вы: <span id="durak-player-count"></span></div>
+                    <div class="score-label player-indicator" id="durak-player-indicator">Вы: <span id="durak-player-count"></span></div>
                     <div class="cards" id="durak-player-hand"></div>
+                </div>
+
+                <!-- Зона Бота 1 (снизу, вы атакуете его) -->
+                <div class="hand-container" style="transform: scale(0.8); margin-top: -10px;">
+                    <div class="score-label player-indicator" id="durak-bot1-indicator">Бот 1 (Защита): <span id="durak-bot1-count"></span></div>
+                    <div class="cards" id="durak-bot1-hand"></div>
                 </div>
             </div>
             
@@ -890,30 +893,34 @@
         }
 
         // ==========================================
-        // ДУРАК (ПОЛНОЦЕННЫЙ ПОДКИДНОЙ)
+        // ДУРАК (ИГРА НА ТРОИХ С ПОДКИДЫВАНИЕМ)
         // ==========================================
-        let durakDeck = [], durakTrump = '♠', durakPlayerHand = [], durakDealerHand = [], durakTable = [];
+        let durakDeck = [], durakTrump = '♠', durakPlayerHand = [], durakBot1Hand = [], durakBot2Hand = [];
+        let durakTable = []; // Карты на столе (атака, защита)
         let durakActive = false;
-        let durakTurn = 'player'; // 'player' или 'dealer'
-        let durakPlayerTaking = false; // Игрок забирает карты
-        let durakDealerTaking = false; // Дилер забирает карты
+        let durakTurn = 'player'; // 'player', 'bot1', 'bot2'
+        let durakPhase = 'attack'; // 'attack' или 'defend'
 
         function resetDurakUI() {
             durakActive = false;
-            durakDeck = []; durakPlayerHand = []; durakDealerHand = []; durakTable = [];
+            durakDeck = []; durakPlayerHand = []; durakBot1Hand = []; durakBot2Hand = [];
+            durakTable = [];
             
             document.getElementById('durak-player-hand').innerHTML = '';
-            document.getElementById('durak-dealer-hand').innerHTML = '';
+            document.getElementById('durak-bot1-hand').innerHTML = '';
+            document.getElementById('durak-bot2-hand').innerHTML = '';
             document.getElementById('durak-cards-in-play').innerHTML = '';
             
             document.getElementById('durak-player-count').innerText = '0 карт';
-            document.getElementById('durak-dealer-count').innerText = '0 карт';
+            document.getElementById('durak-bot1-count').innerText = '0 карт';
+            document.getElementById('durak-bot2-count').innerText = '0 карт';
             document.getElementById('durak-trump-suit').innerText = '?';
             document.getElementById('durak-trump-card-container').innerHTML = '';
             document.getElementById('durak-action-controls').style.display = 'none';
             document.getElementById('durak-restart').style.display = 'flex';
             document.getElementById('durak-bet-controls').style.display = 'flex';
             document.getElementById('btn-durak-deal').disabled = false;
+            updateIndicators();
         }
 
         function startDurak() {
@@ -933,14 +940,16 @@
             durakTrump = trumpCard.suit;
             
             durakPlayerHand = durakDeck.splice(0, 6);
-            durakDealerHand = durakDeck.splice(0, 6);
+            durakBot1Hand = durakDeck.splice(0, 6);
+            durakBot2Hand = durakDeck.splice(0, 6);
             durakTable = [];
             durakActive = true;
-            durakTurn = 'player'; // Первый ход у игрока (для простоты)
-            durakPlayerTaking = false;
-            durakDealerTaking = false;
+            durakTurn = 'player'; // Игрок атакует первым
+            durakPhase = 'attack';
 
             sortHand(durakPlayerHand);
+            sortHand(durakBot1Hand);
+            sortHand(durakBot2Hand);
             
             document.getElementById('durak-trump-suit').innerText = durakTrump;
             const trumpEl = createCardElement(trumpCard, false);
@@ -966,9 +975,20 @@
             });
         }
 
+        function updateIndicators() {
+            document.getElementById('durak-player-indicator').classList.remove('active-turn');
+            document.getElementById('durak-bot1-indicator').classList.remove('active-turn');
+            document.getElementById('durak-bot2-indicator').classList.remove('active-turn');
+
+            if (durakTurn === 'player') document.getElementById('durak-player-indicator').classList.add('active-turn');
+            if (durakTurn === 'bot1') document.getElementById('durak-bot1-indicator').classList.add('active-turn');
+            if (durakTurn === 'bot2') document.getElementById('durak-bot2-indicator').classList.add('active-turn');
+        }
+
         function renderDurak() {
             const pEl = document.getElementById('durak-player-hand');
-            const dEl = document.getElementById('durak-dealer-hand');
+            const b1El = document.getElementById('durak-bot1-hand');
+            const b2El = document.getElementById('durak-bot2-hand');
             const tEl = document.getElementById('durak-cards-in-play');
 
             pEl.innerHTML = '';
@@ -979,15 +999,16 @@
                 pEl.appendChild(cardEl);
             });
 
-            dEl.innerHTML = '';
-            durakDealerHand.forEach(() => {
-                dEl.appendChild(createCardElement({suit: '♠', value: 'A'}, true));
-            });
+            b1El.innerHTML = '';
+            durakBot1Hand.forEach(() => b1El.appendChild(createCardElement({suit: '♠', value: 'A'}, true)));
+
+            b2El.innerHTML = '';
+            durakBot2Hand.forEach(() => b2El.appendChild(createCardElement({suit: '♠', value: 'A'}, true)));
 
             tEl.innerHTML = '';
             durakTable.forEach(pair => {
                 const pDiv = document.createElement('div');
-                pDiv.className = 'pair-container';
+                pDiv.className = 'durak-pair';
                 
                 const attackEl = createCardElement(pair.attack, false, 0);
                 pDiv.appendChild(attackEl);
@@ -1000,8 +1021,10 @@
             });
 
             document.getElementById('durak-player-count').innerText = `${durakPlayerHand.length} карт`;
-            document.getElementById('durak-dealer-count').innerText = `${durakDealerHand.length} карт`;
+            document.getElementById('durak-bot1-count').innerText = `${durakBot1Hand.length} карт`;
+            document.getElementById('durak-bot2-count').innerText = `${durakBot2Hand.length} карт`;
 
+            updateIndicators();
             updateDurakControls();
         }
 
@@ -1030,41 +1053,27 @@
             if (!durakActive || durakTurn !== 'player') return;
             
             const card = durakPlayerHand[index];
-            
             const ranksOnTable = durakTable.map(p => p.attack.value);
             durakTable.forEach(p => { if(p.defend) ranksOnTable.push(p.defend.value); });
 
-            if (durakTable.length === 0) {
+            if (durakPhase === 'attack') {
+                // Игрок атакует Бота 1
                 sCard();
-                durakTable.push({ attack: card, defend: null });
+                durakTable.push({ attack: card, defend: null, attacker: 'player', defender: 'bot1' });
                 durakPlayerHand.splice(index, 1);
-                durakTurn = 'dealer';
+                durakPhase = 'defend';
                 renderDurak();
-                setTimeout(dealerTurn, 1000);
+                setTimeout(bot1Turn, 1000);
             } else {
-                const unbeatened = durakTable.find(p => !p.defend);
-                if (unbeatened) {
-                    if (canBeat(card, unbeatened.attack)) {
-                        sCard();
-                        unbeatened.defend = card;
-                        durakPlayerHand.splice(index, 1);
-                        durakTurn = 'dealer';
-                        renderDurak(); 
-                        setTimeout(dealerTurn, 1000);
-                    } else {
-                        showToast("Эта карта не бьет!", "#ff4444", 1500);
-                    }
+                // Игрок подкидывает
+                if (ranksOnTable.includes(card.value)) {
+                    sCard();
+                    durakTable.push({ attack: card, defend: null, attacker: 'player', defender: 'bot1' });
+                    durakPlayerHand.splice(index, 1);
+                    renderDurak();
+                    setTimeout(bot1Turn, 1000);
                 } else {
-                    if (ranksOnTable.includes(card.value)) {
-                        sCard();
-                        durakTable.push({ attack: card, defend: null });
-                        durakPlayerHand.splice(index, 1);
-                        renderDurak();
-                        durakTurn = 'dealer';
-                        setTimeout(dealerTurn, 1000);
-                    } else {
-                        showToast("Нельзя подкинуть эту карту (нет такого ранга на столе)!", "#ff4444", 2000);
-                    }
+                    showToast("Нельзя подкинуть эту карту (нет такого ранга на столе)!", "#ff4444", 2000);
                 }
             }
         }
@@ -1073,12 +1082,8 @@
             const attackVal = VALUES.indexOf(attackCard.value);
             const defendVal = VALUES.indexOf(defendCard.value);
             
-            if (defendCard.suit === attackCard.suit) {
-                return defendVal > attackVal;
-            }
-            if (defendCard.suit === durakTrump && attackCard.suit !== durakTrump) {
-                return true;
-            }
+            if (defendCard.suit === attackCard.suit) return defendVal > attackVal;
+            if (defendCard.suit === durakTrump && attackCard.suit !== durakTrump) return true;
             return false;
         }
 
@@ -1087,7 +1092,7 @@
             sClick();
 
             if (action === 'take') {
-                durakPlayerTaking = true;
+                // Игрок забирает карты (от Бота 2)
                 durakTable.forEach(pair => {
                     durakPlayerHand.push(pair.attack);
                     if (pair.defend) durakPlayerHand.push(pair.defend);
@@ -1095,26 +1100,28 @@
                 durakTable = [];
                 sortHand(durakPlayerHand);
                 renderDurak();
-                setTimeout(endRound, 500);
+                setTimeout(endRound, 1000);
             } else if (action === 'beat') {
                 if (durakTable.every(p => p.defend)) {
                     durakTable = [];
-                    durakTurn = 'dealer'; // Атакующий (игрок) успешно отбился
+                    durakTurn = 'bot1'; // Передаем ход Боту 1 (он атакует)
+                    durakPhase = 'attack';
                     renderDurak();
-                    setTimeout(endRound, 500);
+                    setTimeout(bot1Turn, 1000);
                 }
             }
         }
 
-        function dealerTurn() {
-            if (!durakActive || durakTurn !== 'dealer') return;
+        function bot1Turn() {
+            if (!durakActive || durakTurn !== 'bot1') return;
             
-            const unbeatened = durakTable.find(p => !p.defend);
+            const unbeatened = durakTable.find(p => !p.defend && p.defender === 'bot1');
             
             if (unbeatened) {
+                // Бот 1 защищается от игрока
                 let cardToPlayIdx = -1;
-                for (let i = 0; i < durakDealerHand.length; i++) {
-                    if (canBeat(durakDealerHand[i], unbeatened.attack)) {
+                for (let i = 0; i < durakBot1Hand.length; i++) {
+                    if (canBeat(durakBot1Hand[i], unbeatened.attack)) {
                         cardToPlayIdx = i;
                         break;
                     }
@@ -1122,49 +1129,114 @@
 
                 if (cardToPlayIdx !== -1) {
                     sCard();
-                    unbeatened.defend = durakDealerHand.splice(cardToPlayIdx, 1)[0];
-                    durakTurn = 'player'; // Дилер отбился
+                    unbeatened.defend = durakBot1Hand.splice(cardToPlayIdx, 1)[0];
                     renderDurak();
-                    updateDurakControls();
+                    setTimeout(bot1Turn, 1000);
                 } else {
-                    showToast("Дилер забирает!", "#ff4444");
-                    durakDealerTaking = true;
-                    durakTable.forEach(pair => {
-                        durakDealerHand.push(pair.attack);
-                        if (pair.defend) durakDealerHand.push(pair.defend);
-                    });
-                    durakTable = [];
-                    sortHand(durakDealerHand);
+                    showToast("Бот 1 забирает!", "#ff4444");
+                    durakBot1Hand.push(unbeatened.attack);
+                    if (unbeatened.defend) durakBot1Hand.push(unbeatened.defend);
+                    durakTable = durakTable.filter(p => p !== unbeatened);
+                    sortHand(durakBot1Hand);
                     renderDurak();
                     setTimeout(endRound, 1000);
                 }
             } else {
+                // Бот 1 отбился от всего, может подкидывать или передать ход
                 const ranksOnTable = durakTable.map(p => p.attack.value);
                 durakTable.forEach(p => { if(p.defend) ranksOnTable.push(p.defend.value); });
                 
                 let cardToAttackIdx = -1;
-                
-                if (durakTable.length === 0) {
-                    if (durakDealerHand.length > 0) cardToAttackIdx = 0;
-                } else {
-                    for (let i = 0; i < durakDealerHand.length; i++) {
-                        if (ranksOnTable.includes(durakDealerHand[i].value)) {
-                            cardToAttackIdx = i;
-                            break;
-                        }
+                for (let i = 0; i < durakBot1Hand.length; i++) {
+                    if (ranksOnTable.includes(durakBot1Hand[i].value)) {
+                        cardToAttackIdx = i;
+                        break;
                     }
                 }
 
                 if (cardToAttackIdx !== -1) {
                     sCard();
-                    durakTable.push({ attack: durakDealerHand.splice(cardToAttackIdx, 1)[0], defend: null });
+                    durakTable.push({ attack: durakBot1Hand.splice(cardToAttackIdx, 1)[0], defend: null, attacker: 'bot1', defender: 'player' });
                     durakTurn = 'player';
+                    durakPhase = 'defend';
                     renderDurak();
-                    updateDurakControls();
+                } else {
+                    // Бот 1 говорит "Бито", теперь он атакует Бота 2
+                    durakTable = [];
+                    durakPhase = 'attack';
+                    renderDurak();
+                    setTimeout(bot1AttackBot2, 1000);
+                }
+            }
+        }
+
+        function bot1AttackBot2() {
+            if (!durakActive || durakTurn !== 'bot1') return;
+            
+            if (durakBot1Hand.length > 0) {
+                sCard();
+                const card = durakBot1Hand.splice(0, 1)[0];
+                durakTable = [{ attack: card, defend: null, attacker: 'bot1', defender: 'bot2' }];
+                durakTurn = 'bot2';
+                renderDurak();
+                setTimeout(bot2Turn, 1000);
+            } else {
+                endRound();
+            }
+        }
+
+        function bot2Turn() {
+            if (!durakActive || durakTurn !== 'bot2') return;
+            
+            const unbeatened = durakTable.find(p => !p.defend && p.defender === 'bot2');
+            
+            if (unbeatened) {
+                // Бот 2 защищается от Бота 1
+                let cardToPlayIdx = -1;
+                for (let i = 0; i < durakBot2Hand.length; i++) {
+                    if (canBeat(durakBot2Hand[i], unbeatened.attack)) {
+                        cardToPlayIdx = i;
+                        break;
+                    }
+                }
+
+                if (cardToPlayIdx !== -1) {
+                    sCard();
+                    unbeatened.defend = durakBot2Hand.splice(cardToPlayIdx, 1)[0];
+                    renderDurak();
+                    setTimeout(bot2Turn, 1000);
+                } else {
+                    showToast("Бот 2 забирает!", "#ff4444");
+                    durakBot2Hand.push(unbeatened.attack);
+                    if (unbeatened.defend) durakBot2Hand.push(unbeatened.defend);
+                    durakTable = durakTable.filter(p => p !== unbeatened);
+                    sortHand(durakBot2Hand);
+                    renderDurak();
+                    setTimeout(endRound, 1000);
+                }
+            } else {
+                // Бот 2 отбился, может подкидывать
+                const ranksOnTable = durakTable.map(p => p.attack.value);
+                durakTable.forEach(p => { if(p.defend) ranksOnTable.push(p.defend.value); });
+                
+                let cardToAttackIdx = -1;
+                for (let i = 0; i < durakBot2Hand.length; i++) {
+                    if (ranksOnTable.includes(durakBot2Hand[i].value)) {
+                        cardToAttackIdx = i;
+                        break;
+                    }
+                }
+
+                if (cardToAttackIdx !== -1) {
+                    sCard();
+                    durakTable.push({ attack: durakBot2Hand.splice(cardToAttackIdx, 1)[0], defend: null, attacker: 'bot2', defender: 'bot1' });
+                    durakTurn = 'bot1';
+                    renderDurak();
+                    setTimeout(bot1Turn, 1000);
                 } else {
                     durakTable = [];
                     renderDurak();
-                    setTimeout(endRound, 500);
+                    setTimeout(endRound, 1000);
                 }
             }
         }
@@ -1172,19 +1244,26 @@
         function endRound() {
             if (!durakActive) return;
 
-            // Добор до 6 карт (атакующий первым, защитник последним)
+            // Добор до 6 карт
             while (durakPlayerHand.length < 6 && durakDeck.length > 0) durakPlayerHand.push(durakDeck.pop());
-            while (durakDealerHand.length < 6 && durakDeck.length > 0) durakDealerHand.push(durakDeck.pop());
+            while (durakBot1Hand.length < 6 && durakDeck.length > 0) durakBot1Hand.push(durakDeck.pop());
+            while (durakBot2Hand.length < 6 && durakDeck.length > 0) durakBot2Hand.push(durakDeck.pop());
             
             sortHand(durakPlayerHand);
-            sortHand(durakDealerHand);
+            sortHand(durakBot1Hand);
+            sortHand(durakBot2Hand);
+            
+            durakTable = [];
+            durakTurn = 'player';
+            durakPhase = 'attack';
             renderDurak();
 
+            // Проверка на конец игры
             if (durakPlayerHand.length === 0 && durakDeck.length === 0) {
                 durakActive = false;
                 balance += bets.durak * 2;
                 updateBalanceUI();
-                showToast("Вы выиграли! Дилер - дурак.", "#4ade80", 3000);
+                showToast("Вы выиграли!", "#4ade80", 3000);
                 sWin();
                 document.getElementById('durak-action-controls').style.display = 'none';
                 document.getElementById('durak-restart').style.display = 'flex';
@@ -1192,32 +1271,15 @@
                 document.getElementById('durak-bet-controls').style.display = 'flex';
                 return;
             }
-            if (durakDealerHand.length === 0 && durakDeck.length === 0) {
+            if (durakBot1Hand.length === 0 || durakBot2Hand.length === 0) {
                 durakActive = false;
-                showToast("Вы проиграли! Вы - дурак.", "#ff4444", 3000);
+                showToast("Вы проиграли! Бот избавился от карт.", "#ff4444", 3000);
                 sLose();
                 document.getElementById('durak-action-controls').style.display = 'none';
                 document.getElementById('durak-restart').style.display = 'flex';
                 document.getElementById('btn-durak-deal').disabled = false;
                 document.getElementById('durak-bet-controls').style.display = 'flex';
                 return;
-            }
-
-            // Смена хода
-            if (durakPlayerTaking) {
-                durakTurn = 'dealer'; // Игрок взял, дилер атакует
-            } else if (durakDealerTaking) {
-                durakTurn = 'player'; // Дилер взял, игрок атакует
-            } else {
-                durakTurn = 'player'; // По умолчанию
-            }
-
-            durakPlayerTaking = false;
-            durakDealerTaking = false;
-            updateDurakControls();
-
-            if (durakTurn === 'dealer') {
-                setTimeout(dealerTurn, 1000);
             }
         }
 
