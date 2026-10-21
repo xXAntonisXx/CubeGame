@@ -942,7 +942,7 @@
         }
 
         // ==========================================
-        // КОСТИ (ИСПРАВЛЕНЫ ПРАВИЛА)
+        // КОСТИ (ПРАВИЛА 1-4 ПРОИГРЫШ, 5-8 НИЧЬЯ, 9-12 ВЫИГРЫШ)
         // ==========================================
         let diceRolling = false;
 
@@ -998,17 +998,13 @@
                     sumEl.innerText = sum;
                     
                     let win = 0;
-                    // НОВЫЕ ПРАВИЛА
                     if (sum >= 1 && sum <= 4) {
-                        // Проигрыш
                         showToast(`Проигрыш! Выпало ${sum}`, "#ff4444");
                         sLose();
                     } else if (sum >= 5 && sum <= 8) {
-                        // Ничья (возврат)
                         win = bet;
                         showToast(`Ничья (${sum}). Ставка возвращена.`, "#ffd700");
                     } else if (sum >= 9 && sum <= 12) {
-                        // Выигрыш
                         win = bet * 2;
                         showToast(`Победа! Выпало ${sum}`, "#4ade80");
                         sWin();
@@ -1024,16 +1020,20 @@
         }
 
         // ==========================================
-        // КОЛЕСО
+        // КОЛЕСО (ИСПРАВЛЕНА МАТЕМАТИКА СЕКТОРОВ)
         // ==========================================
         let wheelSpinning = false;
         let selectedWheelBet = 'red';
+        
+        // Массив из 21 сектора (0 - красное, 1 - черное, 2 - зеленое)
         const wheelColors = [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,2];
 
         function resetWheelUI() {
             wheelSpinning = false;
             document.getElementById('btn-wheel-spin').disabled = false;
             document.getElementById('wheel-bet-controls').style.display = 'flex';
+            
+            // Сбрасываем трансформацию на базовый сдвиг (-90)
             document.getElementById('wheel-spin').style.transform = 'rotate(-90deg)';
             selectWheelBet('red');
         }
@@ -1060,7 +1060,15 @@
             document.getElementById('wheel-bet-controls').style.display = 'none';
 
             const wheelEl = document.getElementById('wheel-spin');
+            
+            // Выбираем случайный выигрышный сектор от 0 до 20
             const winningSector = Math.floor(Math.random() * 21); 
+            
+            // Вычисляем нужный угол. 
+            // Сектор 0 начинается с 0 градусов и идет вправо (по часовой).
+            // Нам нужно, чтобы выигрышный сектор оказался наверху (под стрелкой).
+            // Поэтому мы добавляем 360 градусов за каждый сектор и вычитаем половину сектора (чтобы центр оказался под стрелкой).
+            // Плюс 5 полных оборотов для красоты (1800 градусов).
             const sectorAngle = 360 / 21;
             const targetAngle = -90 - (winningSector * sectorAngle) - (sectorAngle / 2) - 1800;
             
@@ -1071,6 +1079,7 @@
             setTimeout(() => {
                 clearInterval(spinSoundInterval);
                 
+                // Определяем результат по индексу выигрышного сектора
                 const resultColorCode = wheelColors[winningSector];
                 let resultColorStr = resultColorCode === 0 ? 'red' : resultColorCode === 1 ? 'black' : 'green';
 
